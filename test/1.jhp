@@ -1,0 +1,11 @@
+ namespace a\b\c\v;
+ import t.e.a;
+
+ class b extends a{
+ 	@r(ss="aad")
+ 	public list a;
+ 	public b;
+ 	private string c(){
+ 		return 'dfg';
+ 	} 
+ }

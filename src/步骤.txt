@@ -1,0 +1,43 @@
+下一步：开始编写编译器核心
+既然你已成功运行测试程序，可以开始实现将 PHP 代码转换为 Java 代码的核心逻辑。以下是接下来的重点步骤：
+
+实现 PhpParserBaseVisitor 的子类
+覆盖你需要处理的语法节点（如函数、类、语句、表达式等），在每个 visit 方法中输出对应的 Java 代码。
+
+设计符号表
+跟踪 PHP 变量名、函数名、类名，并在生成 Java 代码时映射为合法的 Java 标识符（处理冲突，如 synchronized → synchronized_）。
+
+处理类型系统
+PHP 是动态类型，Java 是静态类型。可以统一使用 Object 加上运行时类型检查，或者实现类型推断（更复杂）。
+
+运行时库
+为 PHP 内置函数（strlen、array_merge、var_dump 等）提供 Java 版本的实现。
+
+集成 Java 编译器
+使用 javax.tools.JavaCompiler 将生成的 .java 文件编译为 .class，然后通过 ProcessBuilder 或 ClassLoader 执行。
+
+如果你需要，我可以立即为你生成一个基础的 Visitor 框架，包含：
+
+文件入口处理（生成 Java 类）
+
+echo 语句转换
+
+变量赋值与读取
+
+简单表达式（加减乘除、字符串连接）
+
+控制流（if、while、for）
+
+请告诉我从哪个部分开始。
+
+编译命令：
+重新生成 ANTLR 语法解析器：
+cd src
+antlr4 -Dlanguage=Java -package jhp.parser -visitor -o jhp/parser JhpLexer.g4 JhpParser.g4
+javac ./jhp/parser/*.java
+
+编译器
+javac compiler/*.java
+
+执行测试
+java Main test.php
