@@ -1,0 +1,87 @@
+package compiler;
+
+import jhp.parser.*;
+import org.antlr.v4.runtime.tree.ParseTree;
+import java.util.List;
+import java.io.PrintWriter;
+
+public final class JhpUtils {
+
+    // 将 PHP 类型映射为 Java 类型
+    public static String mapJhpTypeToJavaType(String phpType) { 
+        switch (phpType) {
+            case "int":
+            case "integer":
+                return "Integer";
+            case "float":
+            case "double":
+                return "Double";
+            case "bool":
+            case "boolean":
+                return "Boolean";
+            case "string":
+                return "String";
+            default:
+                return phpType;
+        }
+     }
+
+    // 从链式表达式中提取变量名，处理 $ 和 { } 包裹的情况
+    public static String getVarNameFromChain(JhpParser.ChainContext ctx) { 
+        JhpParser.ChainOriginContext origin = ctx.chainOrigin();
+        JhpParser.ChainBaseContext base = origin.chainBase();
+        if (base != null) {
+            List<JhpParser.KeyedVariableContext> keyedVars = base.keyedVariable();
+            if (!keyedVars.isEmpty()) {
+                JhpParser.KeyedVariableContext keyedVar = keyedVars.get(0);
+                String varText = keyedVar.getText();
+                if (varText.startsWith("$")) {
+                    varText = varText.substring(1);
+                }
+                if (varText.startsWith("{") && varText.endsWith("}")) {
+                    varText = varText.substring(1, varText.length() - 1);
+                }
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]*").matcher(varText);
+                if (m.find()) {
+                    return m.group();
+                }
+                return varText;
+            }
+        }
+        String text = ctx.getText();
+        if (text.startsWith("$")) text = text.substring(1);
+        return text.replaceAll("[^a-zA-Z0-9_]", "");
+    }
+
+    public static String getAssignableVarName(JhpParser.AssignableContext ctx) {
+        if (ctx.chain() != null) return getVarNameFromChain(ctx.chain());
+        return ctx.getText().replace("$", "");
+    }
+
+    // 判断是否需要括号：判断子表达式是否需要加括号（防止优先级错乱）
+    public static boolean needsParentheses(JhpParser.ExpressionContext ctx) { 
+        // 原子表达式：标量、链、括号、数组字面量等不加括号
+        return !(ctx instanceof JhpParser.ScalarExpressionContext ||
+                 ctx instanceof JhpParser.ChainExpressionContext ||
+                 ctx instanceof JhpParser.ParenthesisExpressionContext ||
+                 ctx instanceof JhpParser.ArrayCreationExpressionContext);
+    }
+    // 判断表达式是否为字符串类型（可用于决定是否需要强制转换）
+    public static boolean isStringExpression(JhpParser.ExpressionContext ctx, ExpressionProcessor exprProc) {
+        if (ctx instanceof JhpParser.ScalarExpressionContext && 
+            ((JhpParser.ScalarExpressionContext)ctx).string() != null) return true;
+        return "String".equals(exprProc.inferTypeFromExpression(ctx));
+    }
+
+    // 生成缩进字符串
+    public static String indentStr(int level) { 
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < level; i++) sb.append("    ");
+        return sb.toString();
+    }
+
+    // 输出缩进
+    public static void printIndent(PrintWriter out, int level) { 
+        for (int i = 0; i < level; i++) out.print("    ");
+     }
+}

@@ -3,6 +3,7 @@ package compiler;
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.PrintWriter;
+import java.util.List;
 
 public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
@@ -10,14 +11,14 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     private int indentLevel = 0;
 
     // 变量处理逻辑现在在这个独立的对象中
-    private final VariableProcessor processor;
-    private final BinaryExpressionProcessor binExprProc;
+    private final VariableProcessor varProc;
+    private final ExpressionProcessor exprProc;
 
     public JhpVisitor(PrintWriter out) {
         this.out = out;
-        this.processor = new VariableProcessor(out);
-        this.binExprProc = new BinaryExpressionProcessor(processor, out);
-        this.processor.setExprProcessor(binExprProc);  // 解决循环依赖
+        this.varProc = new VariableProcessor(out);
+        this.exprProc = new ExpressionProcessor(varProc, out);
+        this.varProc.setExprProcessor(exprProc);  // 解决循环依赖
     }
 
     private void indent() {
@@ -27,7 +28,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     // 收集属性，传递给 processor
     @Override
     public Void visitAttributes(JhpParser.AttributesContext ctx) {
-        processor.setCurrentAttributes(ctx.attributeGroup());
+        varProc.setCurrentAttributes(ctx.attributeGroup());
         return null;
     }
 
@@ -54,7 +55,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     @Override
     public Void visitExpressionStatement(JhpParser.ExpressionStatementContext ctx) {
         if (ctx.expression() instanceof JhpParser.AssignmentExpressionContext) {
-            processor.handleAssignment(
+            varProc.handleAssignment(
                 (JhpParser.AssignmentExpressionContext) ctx.expression(),
                 indentLevel
             );
@@ -64,10 +65,18 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
     @Override
     public Void visitEchoStatement(JhpParser.EchoStatementContext ctx) {
-        JhpParser.ExpressionContext expr = ctx.expressionList().expression(0);
-        String exprCode = processor.getExpressionCode(expr);
+        List<JhpParser.ExpressionContext> expressions = ctx.expressionList().expression();
+        
+        StringBuilder args = new StringBuilder();
+        for (int i = 0; i < expressions.size(); i++) {
+            if (i > 0) {
+                args.append(", ");
+            }
+            args.append(exprProc.generateExpression(expressions.get(i), indentLevel));
+        }
+        
         indent();
-        out.printf("runtime.JhpRuntime.echo(%s);%n", binExprProc.generateExpression(expr, indentLevel));
+        out.printf("runtime.JhpRuntime.echo(%s);%n", args.toString());
         return null;
     }
 
