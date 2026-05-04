@@ -3,6 +3,7 @@ package compiler;
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.PrintWriter;
+import java.util.Map;
 
 public class ExpressionProcessor {
     private final AtomicExpressionProcessor atomic;
@@ -77,6 +78,40 @@ public class ExpressionProcessor {
             return binary.generateAssignment((JhpParser.AssignmentExpressionContext) ctx, indent);
         }
 
+        // 逻辑与
+        if (ctx instanceof JhpParser.LogicalAndExpressionContext) {
+            return binary.generateLogicalAnd((JhpParser.LogicalAndExpressionContext) ctx, indent);
+        }
+        // 逻辑或
+        if (ctx instanceof JhpParser.LogicalIncOrExpressionContext) {
+            return binary.generateLogicalOr((JhpParser.LogicalIncOrExpressionContext) ctx, indent);
+        }
+        // 逻辑异或
+        if (ctx instanceof JhpParser.LogicalExcOrExpressionContext) {
+            return binary.generateLogicalXor((JhpParser.LogicalExcOrExpressionContext) ctx, indent);
+        }
+        // 按位与
+        if (ctx instanceof JhpParser.BitwiseAndExpressionContext) {
+            return binary.generateBitwiseAnd((JhpParser.BitwiseAndExpressionContext) ctx, indent);
+        }
+        // 按位或
+        if (ctx instanceof JhpParser.BitwiseIncOrExpressionContext) {
+            return binary.generateBitwiseOr((JhpParser.BitwiseIncOrExpressionContext) ctx, indent);
+        }
+        // 按位异或
+        if (ctx instanceof JhpParser.BitwiseExcOrExpressionContext) {
+            return binary.generateBitwiseXor((JhpParser.BitwiseExcOrExpressionContext) ctx, indent);
+        }
+        // ??表达式
+        if (ctx instanceof JhpParser.CoalesceExpressionContext) {
+            return binary.generateCoalescing((JhpParser.CoalesceExpressionContext) ctx, indent);
+        }
+        // <=>表达式
+        if (ctx instanceof JhpParser.SpaceshipExpressionContext) {
+            return binary.generateSpaceship((JhpParser.SpaceshipExpressionContext) ctx, indent);
+        }
+
+
         // 未支持的类型则 fallback
         System.err.println("Unsupported expression: " + ctx.getClass().getSimpleName());
         return ctx.getText();
@@ -84,5 +119,9 @@ public class ExpressionProcessor {
 
     public String inferTypeFromExpression(JhpParser.ExpressionContext ctx) {
         return inferType.inferTypeFromExpression(ctx);
+    }
+
+    public String getVariableTypes(String varName) {
+        return varProc.getVariableType(varName);
     }
 }

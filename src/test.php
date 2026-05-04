@@ -2,7 +2,7 @@
 
 // 1. 基础赋值 & 类型推断
 $a = 10;
-// $b = 3.5;
+$b = 3.5;
 // $c = "Hello";
 // $d = true;
 // $e = false;
@@ -56,6 +56,9 @@ $a += 5;
 
 // 10. Echo 输出所有结果
 echo $a, "\n";
+echo $a??$b, "\n";
+$cccc=3.6;
+echo $b<=>4, "\n";
 // echo $b, "\n";
 // echo $c, "\n";
 // echo $d, "\n";
