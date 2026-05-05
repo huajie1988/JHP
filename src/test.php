@@ -34,8 +34,8 @@
 // $v = !$e;           // true
 
 // 6. 数组
-// $list = [1, 2, 3, 4 + 1];        // ArrayList [1,2,3,5]
-// $map = ["name" => "Alice", "age" => 30];  // HashMap
+$list = [1, 2, 3, 4 + 1];        // ArrayList [1,2,3,5]
+$map = ["name" => "Alice", "age" => 30];  // HashMap
 
 // 7. 类型转换 (一元)
 // $w = (int) $b;          // 3
@@ -84,8 +84,8 @@
 // // echo $u, "\n";
 // // echo $v, "\n";
 // // 数组echo可能调用runtime，输出取决于runtime实现
-// echo $list, "\n";
-// echo $map, "\n";
+echo $list, "\n";
+echo $map, "\n";
 // // echo $w, "\n";
 // // echo $x, "\n";
 // // echo $y, "\n";
@@ -95,16 +95,16 @@
 // echo $zc, "\n";
 // echo $zd, "\n";
 
-$a = 10;
-if ($a > 5) {
-    echo "big";
-    echo "aaaa\n";
-}else if ($a == 5) {
-    echo "equal";
-    echo "bbbb\n";
-} else {
-    echo "small";
-}
+// $a = 10;
+// if ($a > 5) {
+//     echo "big";
+//     echo "aaaa\n";
+// }else if ($a == 5) {
+//     echo "equal";
+//     echo "bbbb\n";
+// } else {
+//     echo "small";
+// }
 
 $a = 10;
 // while ($a > 5) {
@@ -125,13 +125,32 @@ $a = 10;
 //     $a--;
 // } while ($a > 5);
 
-switch ($a) {
-    case 10:
-        echo "ten\n";
-        break;
-    case 5:
-        echo "five\n";
-        break;
-    default :
-        echo "other\n";
-}
+// switch ($a) {
+//     case 10:
+//         echo "ten\n";
+//         break;
+//     case 5:
+//         echo "five\n";
+//         break;
+//     default :
+//         echo "other\n";
+// }
+
+$array = [
+    array(1, 2, 3),
+    array(4, 5, 6),
+    array(7, 8, 9)
+];
+
+$map3 = [
+    "person1" => ["name" => "Alice", "age" => 30],
+    "person2" => ["name" => "Bob", "age" => 25]
+];
+
+echo $list[0], "\n"; // 1
+echo $list[1], "\n"; // 2
+echo $map["name"], "\n"; // "Alice"
+echo $map["age"], "\n"; // 30
+echo $array[0][1], "\n"; // 2
+$n = $array[1]; // 6
+$m = $map3["person1"]; // "Alice"

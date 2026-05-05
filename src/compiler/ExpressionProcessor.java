@@ -37,6 +37,10 @@ public class ExpressionProcessor {
         // 数组创建表达式
         if (ctx instanceof JhpParser.ArrayCreationExpressionContext) 
             return atomic.generateArrayCreation((JhpParser.ArrayCreationExpressionContext) ctx, indent);
+        // 索引器表达式
+        if (ctx instanceof JhpParser.IndexerExpressionContext) 
+            return atomic.generateIndexer((JhpParser.IndexerExpressionContext) ctx, indent);
+
 
         // 一元表达式
         // 强制类型转换

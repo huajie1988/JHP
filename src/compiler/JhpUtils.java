@@ -84,4 +84,26 @@ public final class JhpUtils {
     public static void printIndent(PrintWriter out, int level) { 
         for (int i = 0; i < level; i++) out.print("    ");
      }
+
+    // 从泛型类型字符串中提取指定位置的参数类型，例如 List<String> 提取 String
+    public static String getGenericParameter(String type, int index) {
+        int start = type.indexOf('<') + 1;
+        int end = type.lastIndexOf('>');
+        if (end <= start) return "Object";
+        String content = type.substring(start, end);
+        int depth = 0, currentIndex = 0, lastPos = 0;
+        for (int i = 0; i < content.length(); i++) {
+            char c = content.charAt(i);
+            if (c == '<') depth++;
+            else if (c == '>') depth--;
+            else if (c == ',' && depth == 0) {
+                if (currentIndex == index) return content.substring(lastPos, i).trim();
+                currentIndex++;
+                lastPos = i + 1;
+            }
+        }
+        // 最后一个参数
+        if (currentIndex == index) return content.substring(lastPos).trim();
+        return "Object";
+    } 
 }

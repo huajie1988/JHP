@@ -25,8 +25,22 @@ public class InferType {
                 return "String";
             }
         } else if (ctx instanceof JhpParser.ChainExpressionContext) {
-            String varName = JhpUtils.getVarNameFromChain(((JhpParser.ChainExpressionContext) ctx).chain());
-            return varProc.getVariableType(varName);          
+            JhpParser.ChainExpressionContext chainCtx = (JhpParser.ChainExpressionContext) ctx;
+            String varName = JhpUtils.getVarNameFromChain(chainCtx.chain());
+            String varType = varProc.getVariableType(varName);
+            if (hasSubscript(chainCtx.chain())) {
+                int depth = getSubscriptDepth(chainCtx.chain());
+                String currentType = varType;
+                for (int i = 0; i < depth; i++) {
+                    currentType = extractElementType(currentType);
+                }
+                return currentType;
+            } else {
+                return varType;
+            } 
+        }// 新增 IndexerExpression 分支
+        else if (ctx instanceof JhpParser.IndexerExpressionContext) {
+            return "String";
         } else if (ctx instanceof JhpParser.ArrayCreationExpressionContext) {
             return inferArrayType((JhpParser.ArrayCreationExpressionContext) ctx);
         } else if (ctx instanceof JhpParser.AdditiveExpressionContext) {
@@ -49,6 +63,45 @@ public class InferType {
             return "Boolean";
         } else if (ctx instanceof JhpParser.EqualityExpressionContext) {
             return "Boolean";
+        }
+        return "Object";
+    }
+
+    private int getSubscriptDepth(JhpParser.ChainContext chain) {
+        if (chain.chainOrigin() != null && chain.chainOrigin().chainBase() != null) {
+            List<JhpParser.KeyedVariableContext> keyedVars = chain.chainOrigin().chainBase().keyedVariable();
+            if (keyedVars != null && !keyedVars.isEmpty()) {
+                return keyedVars.get(0).squareCurlyExpression().size();
+            }
+        }
+        return 0;
+    }
+    /**
+     * 判断链是否包含方括号下标访问
+     */
+    private boolean hasSubscript(JhpParser.ChainContext chain) {
+        if (chain.chainOrigin() != null &&
+            chain.chainOrigin().chainBase() != null) {
+            List<JhpParser.KeyedVariableContext> keyedVars = chain.chainOrigin().chainBase().keyedVariable();
+            if (keyedVars != null && !keyedVars.isEmpty()) {
+                return !keyedVars.get(0).squareCurlyExpression().isEmpty();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 从 Java 泛型类型字符串中提取元素类型
+     * 例如 ArrayList<Integer> 返回 Integer
+     *      HashMap<String, Double> 返回 Double
+     * 若无法解析则返回 Object
+     */
+    private String extractElementType(String javaType) {
+        if (javaType == null) return "Object";
+        if (javaType.startsWith("ArrayList<") || javaType.startsWith("List<")) {
+            return JhpUtils.getGenericParameter(javaType, 0);
+        } else if (javaType.startsWith("HashMap<") || javaType.startsWith("Map<")) {
+            return JhpUtils.getGenericParameter(javaType, 1); // 值类型是第二个参数
         }
         return "Object";
     }

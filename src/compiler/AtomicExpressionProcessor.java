@@ -19,8 +19,75 @@ public class AtomicExpressionProcessor {
     public String generateScalar(JhpParser.ScalarExpressionContext ctx, int indentLevel) { 
         return ctx.getText();
     }        
-    public String generateChain(JhpParser.ChainExpressionContext ctx, int indentLevel) {
-        return JhpUtils.getVarNameFromChain(ctx.chain());
+    public String generateChain(JhpParser.ChainExpressionContext ctx, int indent) {
+        JhpParser.ChainContext chain = ctx.chain();
+        String varName = getBaseVarName(chain);
+        List<String> subscripts = extractSubscripts(chain);
+        if (subscripts.isEmpty()) {
+            return varName;
+        }
+        String varType = exprProc.getVariableTypes(varName);
+        String result = varName;
+        for (String index : subscripts) {
+            if (isListType(varType)) {
+                result = result + ".get(" + index + ")";
+                // 更新 varType 为元素类型，以支持多级下标
+                varType = extractElementType(varType);
+            } else if (isMapType(varType)) {
+                result = result + ".get(" + index + ")";
+                varType = extractElementType(varType);
+            } else {
+                // 类型未知或不是标准集合，使用运行时 helper（返回 Object，外部可能需要强转）
+                result = "JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                varType = "Object";
+            }
+        }
+        return result;
+    }
+
+    // 辅助方法
+    private boolean isListType(String type) {
+        return type.startsWith("ArrayList<") || type.startsWith("List<");
+    }
+
+    private boolean isMapType(String type) {
+        return type.startsWith("HashMap<") || type.startsWith("Map<");
+    }
+
+    private String extractElementType(String javaType) {
+        if (isListType(javaType)) {
+        return JhpUtils.getGenericParameter(javaType, 0);
+        } else if (isMapType(javaType)) {
+            return JhpUtils.getGenericParameter(javaType, 1);
+        }
+        return "Object";
+    }
+
+
+    // 提取最左侧的变量名（不包含下标）
+    private String getBaseVarName(JhpParser.ChainContext chain) {
+        // 复用 JhpUtils 中的逻辑，它返回干净的变量名
+        return JhpUtils.getVarNameFromChain(chain);
+    }
+
+    // 提取 keyedVariable 中的所有方括号索引
+    private List<String> extractSubscripts(JhpParser.ChainContext chain) {
+        List<String> indices = new ArrayList<>();
+        JhpParser.ChainOriginContext origin = chain.chainOrigin();
+        if (origin == null) return indices;
+        JhpParser.ChainBaseContext base = origin.chainBase();
+        if (base == null) return indices;
+        List<JhpParser.KeyedVariableContext> keyedVars = base.keyedVariable();
+        // 通常只有一个 keyedVariable，但安全起见遍历第一个
+        if (keyedVars.isEmpty()) return indices;
+        JhpParser.KeyedVariableContext kv = keyedVars.get(0);
+        for (JhpParser.SquareCurlyExpressionContext sq : kv.squareCurlyExpression()) {
+            if (sq.expression() != null) {
+                String indexCode = exprProc.generateExpression(sq.expression(), 0); // 缩进不重要
+                indices.add(indexCode);
+            }
+        }
+        return indices;
     }
     public String generateParenthesis(JhpParser.ParenthesisExpressionContext ctx, int indentLevel) { 
         JhpParser.ParenthesesContext parens = ctx.parentheses();
@@ -80,6 +147,13 @@ public class AtomicExpressionProcessor {
         }
         sb.append(JhpUtils.indentStr(indent)).append("}}");
         return sb.toString();
+    }
+
+    public String generateIndexer(JhpParser.IndexerExpressionContext ctx, int indent) {
+        String str = ctx.stringConstant().getText();
+        String index = exprProc.generateExpression(ctx.expression(), indent);
+        // PHP 字符串下标返回字符，Java 用 charAt + String.valueOf 包装
+        return "String.valueOf(" + str + ".charAt(" + index + "))";
     }
 
 }
