@@ -29,40 +29,21 @@ public class AtomicExpressionProcessor {
         String varType = exprProc.getVariableTypes(varName);
         String result = varName;
         for (String index : subscripts) {
-            if (isListType(varType)) {
+            if (JhpUtils.isListType(varType)) {
                 result = result + ".get(" + index + ")";
                 // 更新 varType 为元素类型，以支持多级下标
-                varType = extractElementType(varType);
-            } else if (isMapType(varType)) {
+                varType = JhpUtils.extractElementType(varType);
+            } else if (JhpUtils.isMapType(varType)) {
                 result = result + ".get(" + index + ")";
-                varType = extractElementType(varType);
+                varType = JhpUtils.extractElementType(varType);
             } else {
                 // 类型未知或不是标准集合，使用运行时 helper（返回 Object，外部可能需要强转）
-                result = "JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
                 varType = "Object";
             }
         }
         return result;
     }
-
-    // 辅助方法
-    private boolean isListType(String type) {
-        return type.startsWith("ArrayList<") || type.startsWith("List<");
-    }
-
-    private boolean isMapType(String type) {
-        return type.startsWith("HashMap<") || type.startsWith("Map<");
-    }
-
-    private String extractElementType(String javaType) {
-        if (isListType(javaType)) {
-        return JhpUtils.getGenericParameter(javaType, 0);
-        } else if (isMapType(javaType)) {
-            return JhpUtils.getGenericParameter(javaType, 1);
-        }
-        return "Object";
-    }
-
 
     // 提取最左侧的变量名（不包含下标）
     private String getBaseVarName(JhpParser.ChainContext chain) {

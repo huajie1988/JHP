@@ -21,12 +21,16 @@ public class GeneratedClass {
             put("age", 25);
         }});
         }};
-        runtime.JhpRuntime.echo(list.get(0), "\n");
-        runtime.JhpRuntime.echo(list.get(1), "\n");
-        runtime.JhpRuntime.echo(map.get("name"), "\n");
-        runtime.JhpRuntime.echo(map.get("age"), "\n");
-        runtime.JhpRuntime.echo(array.get(0).get(1), "\n");
-        ArrayList<Integer> n = array.get(1);
-        HashMap<String, Object> m = map3.get("person1");
+        for (ArrayList<Integer> row : array) {
+            {
+                runtime.JhpRuntime.echo(row, ":\n");
+                for (int k2 = 0; k2 < row.size(); k2++) {
+                    Integer value = row.get(k2);
+                    {
+                        runtime.JhpRuntime.echo(k2, ": ", value, "\n");
+                    }
+                }
+            }
+        }
     }
 }

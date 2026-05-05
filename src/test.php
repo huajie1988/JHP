@@ -142,15 +142,46 @@ $array = [
     array(7, 8, 9)
 ];
 
+// for ($i = 0; $i < 3; $i++) {
+//     for ($j = 0; $j < 3; $j++) {
+//         echo $array[$i][$j], "\n";
+//     }
+// }
+
 $map3 = [
     "person1" => ["name" => "Alice", "age" => 30],
     "person2" => ["name" => "Bob", "age" => 25]
 ];
 
-echo $list[0], "\n"; // 1
-echo $list[1], "\n"; // 2
-echo $map["name"], "\n"; // "Alice"
-echo $map["age"], "\n"; // 30
-echo $array[0][1], "\n"; // 2
-$n = $array[1]; // 6
-$m = $map3["person1"]; // "Alice"
+// echo $list[0], "\n"; // 1
+// echo $list[1], "\n"; // 2
+// echo $map["name"], "\n"; // "Alice"
+// echo $map["age"], "\n"; // 30
+// echo $array[0][1], "\n"; // 2
+// $n = $array[1]; // 6
+// $m = $map3["person1"]; // "Alice"
+
+// $array[0][1] = 10;
+// $map["age"] = 31;
+// $map3["person1"]["name"] = "Alice2";
+
+// $m = ["name" => "Alice3", "age" => 32]; // 重新赋值为新对象，原map3不变
+
+// echo $array[0][1], "\n"; // 10
+// echo $map["age"], "\n"; // 31
+// echo $map3["person1"]["name"], "\n";
+// echo $m["name"], "\n"; // "Alice3"
+
+foreach ($array as $row) {
+    echo $row, ":\n";
+    foreach ($row as $k2=>$value) {
+        echo $k2, ": ", $value, "\n";
+    }
+}
+
+// foreach ($map3 as $personInfo) {
+    
+//     foreach ($personInfo as $infoValue) {
+//         echo "  ",  $infoValue, "\n";
+//     }
+// }

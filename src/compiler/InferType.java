@@ -32,7 +32,7 @@ public class InferType {
                 int depth = getSubscriptDepth(chainCtx.chain());
                 String currentType = varType;
                 for (int i = 0; i < depth; i++) {
-                    currentType = extractElementType(currentType);
+                    currentType = JhpUtils.extractElementType(currentType);
                 }
                 return currentType;
             } else {
@@ -90,21 +90,6 @@ public class InferType {
         return false;
     }
 
-    /**
-     * 从 Java 泛型类型字符串中提取元素类型
-     * 例如 ArrayList<Integer> 返回 Integer
-     *      HashMap<String, Double> 返回 Double
-     * 若无法解析则返回 Object
-     */
-    private String extractElementType(String javaType) {
-        if (javaType == null) return "Object";
-        if (javaType.startsWith("ArrayList<") || javaType.startsWith("List<")) {
-            return JhpUtils.getGenericParameter(javaType, 0);
-        } else if (javaType.startsWith("HashMap<") || javaType.startsWith("Map<")) {
-            return JhpUtils.getGenericParameter(javaType, 1); // 值类型是第二个参数
-        }
-        return "Object";
-    }
 
     private String inferArrayType(JhpParser.ArrayCreationExpressionContext ctx) {
         String exprText = ctx.getText();

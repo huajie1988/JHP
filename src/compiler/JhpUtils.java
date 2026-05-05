@@ -106,4 +106,41 @@ public final class JhpUtils {
         if (currentIndex == index) return content.substring(lastPos).trim();
         return "Object";
     } 
+
+    public static boolean isMapType(String type) {
+        return type.startsWith("HashMap<") || type.startsWith("Map<");
+    }
+
+    public static boolean isListType(String type) {
+        return type.startsWith("ArrayList<") || type.startsWith("List<");
+    }
+
+    // 从泛型中提取键类型（仅 Map 有效）
+    public static String extractKeyType(String type) {
+        if (type == null) return "Object";
+        int start = type.indexOf('<') + 1;
+        int end = type.lastIndexOf('>');
+        if (end > start) {
+            String[] parts = type.substring(start, end).split(",");
+            if (parts.length >= 1) return parts[0].trim();
+        }
+        return "Object";
+    }
+
+    /**
+     * 从 Java 泛型类型字符串中提取元素类型
+     * 例如 ArrayList<Integer> 返回 Integer
+     *      HashMap<String, Double> 返回 Double
+     * 若无法解析则返回 Object
+     */
+    public static String extractElementType(String javaType) {
+        if (javaType == null) return "Object";
+        if (JhpUtils.isListType(javaType)) {
+            return JhpUtils.getGenericParameter(javaType, 0);
+        } else if (JhpUtils.isMapType(javaType)) {
+            return JhpUtils.getGenericParameter(javaType, 1); // 值类型是第二个参数
+        }
+        return "Object";
+    }
+
 }

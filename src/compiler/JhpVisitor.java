@@ -268,6 +268,93 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitForeachStatement(JhpParser.ForeachStatementContext ctx) {
+        // 1. 提取被遍历的数组部分
+        String arrayCode;
+        boolean isExpressionArray = ctx.expression() != null && !ctx.expression().isEmpty();
+        if (isExpressionArray) {
+            arrayCode = exprProc.generateExpression(ctx.expression(), indentLevel);
+        } else if (!ctx.chain().isEmpty()) {
+            // 第一个 chain 是数组变量
+            arrayCode = JhpUtils.getVarNameFromChain(ctx.chain(0));
+        } else {
+            System.err.println("Unsupported foreach syntax");
+            return null;
+        }
+
+        // 2. 确定键/值变量
+        JhpParser.AssignableContext leftAssignable = ctx.assignable();   // 单个
+        String keyVar = null;
+        String valueVar;
+        boolean hasKey = ctx.chain().size() > 1;  // 是否有第二个 chain（键值对形式）
+
+        if (hasKey) {
+            keyVar = JhpUtils.getAssignableVarName(leftAssignable);
+            valueVar = JhpUtils.getVarNameFromChain(ctx.chain(1));   // 第二个 chain 是值变量
+        } else {
+            valueVar = JhpUtils.getAssignableVarName(leftAssignable);
+        }
+
+        // 3. 获取数组类型，推断元素类型
+        String arrayType;
+        if (isExpressionArray) {
+            arrayType = exprProc.inferTypeFromExpression(ctx.expression());
+        } else {
+            arrayType = varProc.getVariableType(arrayCode);
+        }
+        String elementType = JhpUtils.extractElementType(arrayType);
+        String keyType = JhpUtils.extractKeyType(arrayType);
+
+        // 4. 生成循环头
+        JhpUtils.printIndent(out, indentLevel);
+        if (hasKey) {
+            if (JhpUtils.isListType(arrayType)) {
+                out.printf("for (int %s = 0; %s < %s.size(); %s++) {%n", keyVar, keyVar, arrayCode, keyVar);
+                indentLevel++;
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s = %s.get(%s);%n", elementType, valueVar, arrayCode, keyVar);
+            } else if (JhpUtils.isMapType(arrayType)) {
+                out.printf("for (Map.Entry<%s, %s> %s_entry : %s.entrySet()) {%n", keyType, elementType,keyVar, arrayCode);
+                indentLevel++;
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s = %s_entry.getKey();%n", keyType, keyVar, keyVar);
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s = %s_entry.getValue();%n", elementType, valueVar, keyVar);
+            } else {
+                System.err.println("Warning: cannot provide key for unknown type in foreach");
+                out.printf("for (%s %s : %s) {%n", elementType, valueVar, arrayCode);
+                indentLevel++;
+            }
+        } else {
+            if (JhpUtils.isMapType(arrayType)) {
+                out.printf("for (%s %s : %s.values()) {%n", elementType, valueVar, arrayCode);
+            } else {
+                out.printf("for (%s %s : %s) {%n", elementType, valueVar, arrayCode);
+            }
+            indentLevel++;
+        }
+
+        if (keyVar != null && !varProc.isVariableDeclared(keyVar)) {
+            varProc.setVariableType(keyVar, keyType);
+        }
+        if (valueVar != null && !varProc.isVariableDeclared(valueVar)) {
+            varProc.setVariableType(valueVar, elementType);
+        }
+
+        // 5. 循环体
+        if (ctx.statement() != null) {
+            visit(ctx.statement());
+        } else if (ctx.innerStatementList() != null) {
+            System.err.println("Colon-style foreach not supported yet");
+        }
+
+        indentLevel--;
+        JhpUtils.printIndent(out, indentLevel);
+        out.println("}");
+
+        return null;
+    }
 
 
     @Override

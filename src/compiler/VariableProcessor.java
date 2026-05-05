@@ -47,18 +47,83 @@ public class VariableProcessor {
      */
 
     public void handleAssignment(JhpParser.AssignmentExpressionContext ctx, int indentLevel) {
-        String leftVar = getAssignableVarName(ctx.assignable());
+        String leftVar = JhpUtils.getAssignableVarName(ctx.assignable());
         JhpParser.ExpressionContext rightExpr = ctx.expression();
         String assignOp = ctx.assignmentOperator().getText();
 
         System.err.println("DEBUG: Assignment operator is '" + assignOp + "'");
 
         if (assignOp.equals("=")) {
-            handleSimpleAssignment(leftVar, rightExpr, indentLevel);
+            if (isIndexedAssignable(ctx.assignable())) {
+                handleIndexedAssignment(ctx, indentLevel);
+            } else {
+                handleSimpleAssignment(leftVar, rightExpr, indentLevel);
+            }
         } else {
-            handleCompoundAssignment(leftVar, assignOp, rightExpr, indentLevel);
+            if (isIndexedAssignable(ctx.assignable())) {
+                System.err.println("Compound assignment on array element is not supported yet.");
+                // 暂时忽略，或可扩展为 取值 -> 运算 -> 赋值
+            } else {
+                handleCompoundAssignment(leftVar, assignOp, rightExpr, indentLevel);
+            }
         }
     }
+
+    /**
+     * 判断 assignable 是否包含下标访问（如 $arr[0]）
+     */
+    private boolean isIndexedAssignable(JhpParser.AssignableContext ctx) {
+        if (ctx.chain() != null) {
+            JhpParser.ChainContext chain = ctx.chain();
+            JhpParser.ChainOriginContext origin = chain.chainOrigin();
+            if (origin != null && origin.chainBase() != null) {
+                JhpParser.ChainBaseContext base = origin.chainBase();
+                List<JhpParser.KeyedVariableContext> keyedVars = base.keyedVariable();
+                if (keyedVars != null && !keyedVars.isEmpty()) {
+                    return !keyedVars.get(0).squareCurlyExpression().isEmpty();
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 处理数组/Map 下标赋值（如 $arr[0] = 5）
+     */
+    private void handleIndexedAssignment(JhpParser.AssignmentExpressionContext ctx, int indentLevel) {
+        JhpParser.AssignableContext assignable = ctx.assignable();
+        String baseVar = JhpUtils.getVarNameFromChain(assignable.chain());
+
+        // 提取所有下标表达式
+        List<String> indices = new ArrayList<>();
+        JhpParser.ChainContext chain = assignable.chain();
+        JhpParser.ChainOriginContext origin = chain.chainOrigin();
+        if (origin != null && origin.chainBase() != null) {
+            JhpParser.ChainBaseContext base = origin.chainBase();
+            List<JhpParser.KeyedVariableContext> keyedVars = base.keyedVariable();
+            if (keyedVars != null && !keyedVars.isEmpty()) {
+                for (JhpParser.SquareCurlyExpressionContext sq : keyedVars.get(0).squareCurlyExpression()) {
+                    if (sq.expression() != null) {
+                        indices.add(exprProc.generateExpression(sq.expression(), indentLevel));
+                    }
+                }
+            }
+        }
+
+        String rightCode = exprProc.generateExpression(ctx.expression(), indentLevel);
+
+        // 生成 JhpRuntime.arraySet(baseVar, index1, index2, …, rightCode)
+        StringBuilder sb = new StringBuilder();
+        sb.append("runtime.JhpRuntime.arraySet(").append(baseVar);
+        for (String idx : indices) {
+            sb.append(", ").append(idx);
+        }
+        sb.append(", ").append(rightCode).append(");");
+
+        JhpUtils.printIndent(out, indentLevel);
+        out.println(sb.toString());
+    }
+
     public void handleSimpleAssignment(String leftVar, JhpParser.ExpressionContext rightExpr, int indentLevel) {
 
         // 优先从属性中获取类型
@@ -113,13 +178,6 @@ public class VariableProcessor {
     }
 
     // ---------- 以下为私有辅助方法 ----------
-
-    private String getAssignableVarName(JhpParser.AssignableContext ctx) {
-        if (ctx.chain() != null) {
-            return JhpUtils.getVarNameFromChain(ctx.chain());
-        }
-        return ctx.getText().replace("$", "");
-    }
 
     private String extractTypeFromAttributes(List<JhpParser.AttributeGroupContext> attrs) {
         for (JhpParser.AttributeGroupContext group : attrs) {
