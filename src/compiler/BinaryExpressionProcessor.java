@@ -240,6 +240,26 @@ public class BinaryExpressionProcessor {
         return leftPart+".compareTo(" + rightPart + ")";
     }
 
+    public String generateExponential(JhpParser.ExponentiationExpressionContext ctx, int indentLevel) {
+        String left = exprProc.generateExpression(ctx.expression(0), indentLevel);
+        String right = exprProc.generateExpression(ctx.expression(1), indentLevel);
+        // PHP 的指数运算符 '**' 在 Java 中没有直接对应的运算符，需要转换为 Math.pow() 方法调用
+        String leftPart = JhpUtils.needsParentheses(ctx.expression(0)) ? "(" + left + ")" : left;
+        String rightPart = JhpUtils.needsParentheses(ctx.expression(1)) ? "(" + right + ")" : right;
+        return "Math.pow(" + leftPart + ", " + rightPart + ")";
+    }
+
+    public String generateConditionalExpression(JhpParser.ConditionalExpressionContext ctx, int indentLevel) {
+        String condition = exprProc.generateExpression(ctx.expression(0), indentLevel);
+        String truePart = exprProc.generateExpression(ctx.expression(1), indentLevel);
+        String falsePart = exprProc.generateExpression(ctx.expression(2), indentLevel);
+        // PHP 的三元表达式在 Java 中直接对应为三元表达式
+        String conditionPart = JhpUtils.needsParentheses(ctx.expression(0)) ? "(" + condition + ")" : condition;
+        String truePartFormatted = JhpUtils.needsParentheses(ctx.expression(1)) ? "(" + truePart + ")" : truePart;
+        String falsePartFormatted = JhpUtils.needsParentheses(ctx.expression(2)) ? "(" + falsePart + ")" : falsePart;
+        return conditionPart + " ? " + truePartFormatted + " : " + falsePartFormatted;
+    }
+
     private String applyParentheses(String left, String right, String op,
                                     JhpParser.ExpressionContext leftCtx, JhpParser.ExpressionContext rightCtx) {
         String leftPart = JhpUtils.needsParentheses(leftCtx) ? "(" + left + ")" : left;

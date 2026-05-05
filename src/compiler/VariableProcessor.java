@@ -146,4 +146,12 @@ public class VariableProcessor {
     public String getVariableType(String varName) { 
         return varTypes.getOrDefault(varName, "Object");
     }
+
+    public void setVariableType(String varName, String varType) {
+        varTypes.put(varName, varType);
+    }
+    public boolean isVariableDeclared(String varName) {
+        return varTypes.containsKey(varName);
+    }
+
 }

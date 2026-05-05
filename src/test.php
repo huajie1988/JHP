@@ -1,13 +1,13 @@
 <?php
 
 // 1. 基础赋值 & 类型推断
-$a = 10;
-$b = 3.5;
+// $a = 10;
+// $b = 3.5;
 // $c = "Hello";
 // $d = true;
 // $e = false;
 
-$a += 5;
+// $a += 5;
 // 2. 加法、减法、乘法、除法、取模
 // $f = $a + 5;        // 20
 // $g = $a - 2;        // 8
@@ -55,10 +55,13 @@ $a += 5;
 // $bd = "99.95";  // 若需要可开启，但BigDecimal初始化已移出
 
 // 10. Echo 输出所有结果
-echo $a, "\n";
-echo $a??$b, "\n";
-$cccc=3.6;
-echo $b<=>4, "\n";
+// echo $a, "\n";
+// echo $a??$b, "\n";
+// $cccc=3.6;
+// echo 4<=>$b, "\n";
+// echo true && false, "\n";
+// echo $a**2, "\n";
+// echo ($a>0)?($a+1):$b, "\n";
 // echo $b, "\n";
 // echo $c, "\n";
 // echo $d, "\n";
@@ -91,3 +94,44 @@ echo $b<=>4, "\n";
 // echo $zb, "\n";
 // echo $zc, "\n";
 // echo $zd, "\n";
+
+$a = 10;
+if ($a > 5) {
+    echo "big";
+    echo "aaaa\n";
+}else if ($a == 5) {
+    echo "equal";
+    echo "bbbb\n";
+} else {
+    echo "small";
+}
+
+$a = 10;
+// while ($a > 5) {
+//     echo "big";
+//     echo $a, "\n";
+//     $a--;
+// }
+
+// for ($i=0; $i < 5; $i++) {
+//     if($i == 2) {
+//         break; // 跳过当前循环
+//     }
+//     echo "i=", $i, "\n";
+// }
+
+// do {
+//     echo "a=", $a, "\n";
+//     $a--;
+// } while ($a > 5);
+
+switch ($a) {
+    case 10:
+        echo "ten\n";
+        break;
+    case 5:
+        echo "five\n";
+        break;
+    default :
+        echo "other\n";
+}

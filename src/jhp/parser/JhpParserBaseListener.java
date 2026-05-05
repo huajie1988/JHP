@@ -485,6 +485,18 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSwitchBlockBody(JhpParser.SwitchBlockBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSwitchBlockBody(JhpParser.SwitchBlockBodyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterBreakStatement(JhpParser.BreakStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}

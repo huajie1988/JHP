@@ -2,10 +2,13 @@ import jhp.parser.*;
 import compiler.JhpVisitor;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 import java.io.*;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -21,9 +24,32 @@ public class Main {
         JhpLexer lexer = new JhpLexer(input);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         JhpParser parser = new JhpParser(tokens);
-        ParseTree tree = parser.phpFile();
 
-        // 2. 生成 Java 代码
+        // 先设置严格错误处理
+        // 移除默认控制台错误输出，换成自定义收集器
+        parser.removeErrorListeners();
+        List<String> errors = new ArrayList<>();
+        parser.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
+                                    int line, int charPositionInLine,
+                                    String msg, RecognitionException e) {
+                errors.add("line " + line + ":" + charPositionInLine + " " + msg);
+            }
+        });
+
+        ParseTree tree = parser.phpFile();   // 使用默认错误恢复策略，会尽可能解析出所有错误
+
+        // 如果有错误，打印详细信息并退出，不继续翻译
+        if (!errors.isEmpty()) {
+            System.err.println("PHP 语法错误：");
+            for (String err : errors) {
+                System.err.println("  " + err);
+            }
+            System.exit(1);
+        }
+
+        // 2. 生成 Java 代码 走到这里说明解析成功，继续生成 Java
         try (PrintWriter out = new PrintWriter(new FileWriter(javaFile))) {
             JhpVisitor visitor = new JhpVisitor(out);
             visitor.visit(tree);

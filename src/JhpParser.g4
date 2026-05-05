@@ -240,8 +240,14 @@ switchStatement
     )
     ;
 
+// 建议修改 JhpParser.g4
 switchBlock
-    : ((Case expression | Default) (':' | SemiColon))+ innerStatementList
+    : Case expression (':' | ';') switchBlockBody
+    | Default (':' | ';') switchBlockBody
+    ;
+    
+switchBlockBody
+    : innerStatementList
     ;
 
 breakStatement
@@ -760,7 +766,7 @@ identifier
     | Const
     | Continue
     | Declare
-    | Default
+    // | Default
     | Do
     | DoubleCast
     | DoubleType

@@ -398,6 +398,16 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitSwitchBlock(JhpParser.SwitchBlockContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link JhpParser#switchBlockBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterSwitchBlockBody(JhpParser.SwitchBlockBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JhpParser#switchBlockBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitSwitchBlockBody(JhpParser.SwitchBlockBodyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link JhpParser#breakStatement}.
 	 * @param ctx the parse tree
 	 */

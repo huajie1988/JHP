@@ -245,6 +245,12 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSwitchBlock(JhpParser.SwitchBlockContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link JhpParser#switchBlockBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSwitchBlockBody(JhpParser.SwitchBlockBodyContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link JhpParser#breakStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

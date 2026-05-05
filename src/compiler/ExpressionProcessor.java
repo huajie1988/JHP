@@ -3,6 +3,7 @@ package compiler;
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 
 public class ExpressionProcessor {
@@ -110,7 +111,15 @@ public class ExpressionProcessor {
         if (ctx instanceof JhpParser.SpaceshipExpressionContext) {
             return binary.generateSpaceship((JhpParser.SpaceshipExpressionContext) ctx, indent);
         }
+        // 幂运算
+        if (ctx instanceof JhpParser.ExponentiationExpressionContext) {
+            return binary.generateExponential((JhpParser.ExponentiationExpressionContext) ctx, indent);
+        }
 
+        // 三元表达式
+        if (ctx instanceof JhpParser.ConditionalExpressionContext) {
+            return binary.generateConditionalExpression((JhpParser.ConditionalExpressionContext) ctx, indent);
+        }
 
         // 未支持的类型则 fallback
         System.err.println("Unsupported expression: " + ctx.getClass().getSimpleName());
@@ -123,5 +132,17 @@ public class ExpressionProcessor {
 
     public String getVariableTypes(String varName) {
         return varProc.getVariableType(varName);
+    }
+
+    // 新增辅助方法：将 expressionList 转换为逗号分隔的表达式代码
+    public String generateExpressionList(JhpParser.ExpressionListContext ctx, int indent) {
+        if (ctx == null || ctx.expression() == null) return "";
+        List<JhpParser.ExpressionContext> exprs = ctx.expression();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < exprs.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(generateExpression(exprs.get(i), indent));
+        }
+        return sb.toString();
     }
 }
