@@ -26,6 +26,14 @@ public class InferType {
             }
         } else if (ctx instanceof JhpParser.ChainExpressionContext) {
             JhpParser.ChainExpressionContext chainCtx = (JhpParser.ChainExpressionContext) ctx;
+            JhpParser.ChainContext chain = chainCtx.chain();
+            // 检查是否是函数调用
+            if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
+                JhpParser.FunctionCallContext funcCall = chain.chainOrigin().functionCall();
+                String funcName = JhpUtils.resolveFunctionNameForInfer(funcCall.functionCallName());
+                return varProc.getFunctionReturnType(funcName);
+            }
+            
             String varName = JhpUtils.getVarNameFromChain(chainCtx.chain());
             String varType = varProc.getVariableType(varName);
             if (hasSubscript(chainCtx.chain())) {

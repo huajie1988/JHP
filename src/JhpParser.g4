@@ -40,29 +40,18 @@ phpBlock
     ;
 
 importStatement
-    : Import Namespace namespaceNameList SemiColon
+    : Import      qualifiedNamespaceName SemiColon   // 明确推荐：import java.util.List;
+    | Include     qualifiedNamespaceName SemiColon   // 兼容：include java.util.List;
+    | Require     qualifiedNamespaceName SemiColon   // 兼容：require java.util.List;
+    | Use         qualifiedNamespaceName SemiColon   // 兼容：use java.util.List;
     ;
 
 topStatement
     : statement
-    | useDeclaration
     | namespaceDeclaration
     | functionDeclaration
     | classDeclaration
-    | globalConstantDeclaration
     | enumDeclaration
-    ;
-
-useDeclaration
-    : Use (Function_ | Const)? useDeclarationContentList SemiColon
-    ;
-
-useDeclarationContentList
-    : '\\'? useDeclarationContent (',' '\\'? useDeclarationContent)*
-    ;
-
-useDeclarationContent
-    : namespaceNameList
     ;
 
 namespaceDeclaration
@@ -74,16 +63,14 @@ namespaceDeclaration
 
 namespaceStatement
     : statement
-    | useDeclaration
     | functionDeclaration
     | classDeclaration
-    | globalConstantDeclaration
     ;
 
 functionDeclaration
-    : attributes? Function_ '&'? identifier typeParameterListInBrackets? '(' formalParameterList ')' (
-        ':' QuestionMark? typeHint
-    )? blockStatement
+    : attributes? Function_ identifier typeParameterListInBrackets? '(' formalParameterList ')' 
+      (':' QuestionMark? typeHint)? 
+      blockStatement
     ;
 
 classDeclaration
@@ -156,8 +143,8 @@ innerStatement
 // Statements
 
 statement
-    : identifier ':'
-    | blockStatement
+    // identifier ':'
+    : blockStatement
     | ifStatement
     | whileStatement
     | doWhileStatement
@@ -166,17 +153,13 @@ statement
     | breakStatement
     | continueStatement
     | returnStatement
-    | yieldExpression SemiColon
-    | globalStatement
-    | staticVariableStatement
+    // | staticVariableStatement
     | echoStatement
     | expressionStatement
-    | unsetStatement
     | foreachStatement
     | tryCatchFinally
     | throwStatement
-    | gotoStatement
-    | declareStatement
+    // | declareStatement
     | emptyStatement_
     | attributes expressionStatement   // 新增：允许属性修饰表达式语句
     ;
@@ -266,15 +249,11 @@ expressionStatement
     : expression SemiColon
     ;
 
-unsetStatement
-    : Unset '(' chainList ')' SemiColon
-    ;
-
 foreachStatement
     : Foreach (
         '(' expression As arrayDestructuring ')'
-        | '(' chain As '&'? assignable ('=>' '&'? chain)? ')'
-        | '(' expression As assignable ('=>' '&'? chain)? ')'
+        | '(' chain As assignable ('=>' chain)? ')'
+        | '(' expression As assignable ('=>' chain)? ')'
         | '(' chain As List '(' assignmentList ')' ')'
     ) (statement | ':' innerStatementList EndForeach SemiColon)
     ;
@@ -295,48 +274,21 @@ throwStatement
     : Throw expression SemiColon
     ;
 
-gotoStatement
-    : Goto identifier SemiColon
-    ;
-
-declareStatement
-    : Declare '(' declareList ')' (statement | ':' innerStatementList EndDeclare SemiColon)
-    ;
-
-declareList
-    : directive (',' directive)*
-    ;
-
-directive
-    : Ticks Eq (numericConstant | Real)
-    | Encoding Eq SingleQuoteString
-    | StrictTypes Eq numericConstant
-    ;
 
 formalParameterList
     : formalParameter? (',' formalParameter)* ','?
     ;
 
 formalParameter
-    : attributes? memberModifier* QuestionMark? typeHint? '&'? '...'? variableInitializer
+    : attributes? memberModifier* QuestionMark? typeHint '...'? variableInitializer
     ;
 
 // 支持联合类型 (PHP 8)
 typeHint
-    : qualifiedStaticTypeRef
+    : primitiveType
+    | qualifiedStaticTypeRef
     | Callable
-    | primitiveType
     | typeHint '|' typeHint
-    ;
-
-globalStatement
-    : Global globalVar (',' globalVar)* SemiColon
-    ;
-
-globalVar
-    : VarName
-    | Dollar chain
-    | Dollar OpenCurlyBracket expression CloseCurlyBracket
     ;
 
 echoStatement
@@ -352,7 +304,7 @@ classStatement
         propertyModifiers typeHint? variableInitializer (',' variableInitializer)* SemiColon
         | memberModifiers? (
             Const typeHint? identifierInitializer (',' identifierInitializer)* SemiColon
-            | Function_ '&'? identifier typeParameterListInBrackets? '(' formalParameterList ')' (
+            | Function_ identifier typeParameterListInBrackets? '(' formalParameterList ')' (
                 baseCtorCall
                 | returnTypeDecl
             )? methodBody
@@ -413,9 +365,6 @@ identifierInitializer
     : identifier Eq constantInitializer
     ;
 
-globalConstantDeclaration
-    : attributes? Const identifierInitializer (',' identifierInitializer)* SemiColon
-    ;
 
 // PHP 8 枚举
 enumDeclaration
@@ -433,7 +382,7 @@ expressionList
     ;
 
 parentheses
-    : '(' (expression | yieldExpression) ')'
+    : '(' expression ')'
     ;
 
 // Expressions
@@ -452,15 +401,9 @@ expression
     | constant                                                    # ScalarExpression
     | string                                                      # ScalarExpression
     | Label                                                       # ScalarExpression
-    | BackQuoteString                                             # BackQuoteStringExpression
+    // | BackQuoteString                                             # BackQuoteStringExpression
     | parentheses                                                 # ParenthesisExpression
-    | Yield                                                       # SpecialWordExpression
-    | List '(' assignmentList ')' Eq expression                   # SpecialWordExpression
-    | IsSet '(' chainList ')'                                     # SpecialWordExpression
-    | Empty '(' chain ')'                                         # SpecialWordExpression
-    | Eval '(' expression ')'                                     # SpecialWordExpression
-    | Exit ( '(' ')' | parentheses)?                              # SpecialWordExpression
-    | lambdaFunctionExpr                                          # LambdaFunctionExpression
+    // | lambdaFunctionExpr                                          # LambdaFunctionExpression
     | matchExpr                                                   # MatchExpression
     | <assoc = right> expression op = '**' expression             # ExponentiationExpression
     | expression InstanceOf typeRef                               # InstanceOfExpression
@@ -477,12 +420,10 @@ expression
     | expression op = QuestionMark expression? ':' expression     # ConditionalExpression
     | expression op = '??' expression                             # CoalesceExpression
     | expression op = '<=>' expression                            # SpaceshipExpression
-    | (Include | IncludeOnce) expression                          # IncludeExpression
-    | (Require | RequireOnce) expression                          # RequireExpression
-    | Throw expression                                            # SpecialWordExpression
+    // | Throw expression                                            # SpecialWordExpression
     | arrayDestructuring Eq expression                            # ArrayDestructExpression
     | assignable assignmentOperator attributes? expression        # AssignmentExpression
-    | assignable Eq attributes? '&' (chain | newExpr)             # AssignmentExpression
+    // | assignable Eq attributes? '&' (chain | newExpr)             # AssignmentExpression
     | expression op = LogicalAnd expression                       # LogicalAndExpression
     | expression op = LogicalXor expression                       # LogicalExcOrExpression
     | expression op = LogicalOr expression                        # LogicalIncOrExpression
@@ -503,18 +444,18 @@ arrayDestructuring
     ;
 
 indexedDestructItem
-    : '&'? chain
+    : chain
     ;
 
 keyedDestructItem
-    : (expression '=>')? '&'? chain
+    : (expression '=>')? chain
     ;
 
-// 箭头函数 fn() => expr (PHP 7.4+)
-lambdaFunctionExpr
-    : Static? Function_ '&'? '(' formalParameterList ')' lambdaFunctionUseVars? (':' typeHint)? blockStatement
-    | LambdaFn '(' formalParameterList ')' '=>' expression
-    ;
+//// 箭头函数 fn() => expr (PHP 7.4+)
+// lambdaFunctionExpr
+//    : Static? Function_ '&'? '(' formalParameterList ')' lambdaFunctionUseVars? (':' typeHint)? blockStatement
+//    | LambdaFn '(' formalParameterList ')' '=>' expression
+//    ;
 
 matchExpr
     : Match_ '(' expression ')' OpenCurlyBracket matchItem (',' matchItem)* ','? CloseCurlyBracket
@@ -545,26 +486,22 @@ assignmentOperator
     | '??='
     ;
 
-yieldExpression
-    : Yield (expression ('=>' expression)? | From expression)
-    ;
-
 arrayItemList
     : arrayItem (',' arrayItem)* ','?
     ;
 
 arrayItem
     : expression ('=>' expression)?
-    | (expression '=>')? '&' chain
+    // | (expression '=>')? '&' chain
     ;
 
-lambdaFunctionUseVars
-    : Use '(' lambdaFunctionUseVar (',' lambdaFunctionUseVar)* ')'
-    ;
+// lambdaFunctionUseVars
+//    : Use '(' lambdaFunctionUseVar (',' lambdaFunctionUseVar)* ')'
+//    ;
 
-lambdaFunctionUseVar
-    : '&'? VarName
-    ;
+// lambdaFunctionUseVar
+//    : '&'? VarName
+//    ;
 
 qualifiedStaticTypeRef
     : qualifiedNamespaceName genericDynamicArgs?
@@ -610,12 +547,12 @@ qualifiedNamespaceNameList
     ;
 
 arguments
-    : '(' (actualArgument (',' actualArgument)* | yieldExpression)? ','? ')'
+    : '(' (actualArgument (',' actualArgument)*)? ','? ')'
     ;
 
 actualArgument
     : argumentName? '...'? expression
-    | '&' chain
+    // | '&' chain
     ;
 
 argumentName
@@ -765,7 +702,7 @@ identifier
     | Clone
     | Const
     | Continue
-    | Declare
+    // | Declare
     // | Default
     | Do
     | DoubleCast
@@ -773,15 +710,15 @@ identifier
     | Echo
     | Else
     | ElseIf
-    | Empty
-    | EndDeclare
+    // | Empty
+    // | EndDeclare
     | EndFor
     | EndForeach
     | EndIf
     | EndSwitch
     | EndWhile
-    | Eval
-    | Exit
+    // | Eval
+    // | Exit
     | Extends
     | Final
     | Finally
@@ -789,13 +726,13 @@ identifier
     | For
     | Foreach
     | Function_
-    | Global
-    | Goto
+    // | Global
+    // | Goto
     | If
     | Implements
     | Import
     | Include
-    | IncludeOnce
+    // | IncludeOnce
     | InstanceOf
     | InsteadOf
     | Int16Cast
@@ -803,8 +740,8 @@ identifier
     | Int8Cast
     | Interface
     | IntType
-    | IsSet
-    | LambdaFn
+    // | IsSet
+    // | LambdaFn
     | List
     | LogicalAnd
     | LogicalOr
@@ -821,7 +758,7 @@ identifier
     | Public
     | Readonly
     | Require
-    | RequireOnce
+    // | RequireOnce
     | Resource
     | Return
     | Static
@@ -833,17 +770,17 @@ identifier
     | Typeof
     | UintCast
     | UnicodeCast
-    | Unset
+    // | Unset
     | Use
     | Var
     | While
-    | Yield
-    | From
+    // | Yield
+    // | From
     | Enum_
     | Match_
-    | Ticks
-    | Encoding
-    | StrictTypes
+    // | Ticks
+    // | Encoding
+    // | StrictTypes
     | Get
     | Set
     | Call
@@ -853,8 +790,8 @@ identifier
     | Wakeup
     | Sleep
     | Autoload
-    | IsSet__
-    | Unset__
+    // | IsSet__
+    // | Unset__
     | ToString__
     | Invoke
     | SetState
@@ -918,5 +855,5 @@ castOperation
     | Array
     | ObjectType
     | Resource
-    | Unset
+    // | Unset
     ;

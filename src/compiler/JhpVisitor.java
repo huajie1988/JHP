@@ -5,19 +5,29 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.*;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
     private final PrintWriter out;
     private int indentLevel = 0;
+    private int needStatic = 0; // 1=需要static，0=不需要static
+    private final String mainClassName;          // 顶层 public class 的名字
+    private final int mode;                      // 编译模式 1~3
+    private boolean hasMain = true;              // 是否生成 main 方法（模式1需要 main）
 
     // 变量处理逻辑现在在这个独立的对象中
     private final VariableProcessor varProc;
     private final ExpressionProcessor exprProc;
 
-    public JhpVisitor(PrintWriter out) {
+    public JhpVisitor(PrintWriter out, int mode, String className) {
         this.out = out;
+        this.mode = mode;
+        this.mainClassName = (className != null && !className.isEmpty()) ? className : "GeneratedClass";
+        if(mode == 1 || mode == 2) {
+            this.needStatic = 1; // 模式1和模式2需要 static 方法
+        }
         this.varProc = new VariableProcessor(out);
         this.exprProc = new ExpressionProcessor(varProc, out);
         this.varProc.setExprProcessor(exprProc);  // 解决循环依赖
@@ -36,21 +46,41 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
     @Override
     public Void visitPhpFile(JhpParser.PhpFileContext ctx) {
-        out.println("import java.util.*;");
-        out.println("import java.math.BigDecimal;");
-        out.println("public class GeneratedClass {");
-        indentLevel++;
-        out.println("    public static void main(String[] args) {");
-        indentLevel++;
-        for (ParseTree child : ctx.children) {
-            if (child instanceof JhpParser.TopStatementContext) {
-                visit(child);
+        if(mode == 3) {
+             clazzProcess(ctx);
+        }else if(mode == 1 || mode == 2) {
+            out.println("import java.util.*;");
+            out.println("public class " + mainClassName + " {");
+            indentLevel++;
+
+            // 收集非函数声明的顶层语句，用于 main 方法
+            List<ParseTree> mainStatements = new ArrayList<>();
+
+            for (ParseTree child : ctx.children) {
+                if (child instanceof JhpParser.TopStatementContext) {
+                    JhpParser.TopStatementContext topCtx = (JhpParser.TopStatementContext) child;
+                    // 遇到函数声明，立即生成
+                    if (topCtx.functionDeclaration() != null) {
+                        visit(topCtx.functionDeclaration());
+                    } else {
+                        mainStatements.add(topCtx);
+                    }
+                }
             }
+
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("public static void main(String[] args) {");
+            indentLevel++;
+            for (ParseTree stmt : mainStatements) {
+                visit(stmt);
+            }
+            indentLevel--;
+            out.println("    }");
+            indentLevel--;
+            out.println("}");
         }
-        indentLevel--;
-        out.println("    }");
-        indentLevel--;
-        out.println("}");
+       
+        
         return null;
     }
 
@@ -63,7 +93,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             );
         }else {
             String exprCode = exprProc.generateExpression(ctx.expression(), indentLevel);
-            indent();
+            JhpUtils.printIndent(out, indentLevel);
             out.println(exprCode + ";");
         }
         return null;
@@ -356,6 +386,45 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitFunctionDeclaration(JhpParser.FunctionDeclarationContext ctx) {
+        String funcName = ctx.identifier().getText();
+        
+        // 推断返回类型
+        String returnType = "void";
+        if (ctx.typeHint() != null) {
+            returnType = JhpUtils.mapTypeHint(ctx.typeHint());
+        }
+
+        varProc.setFunctionReturnType(funcName, returnType);
+        // 构建参数列表
+        List<String> paramDecls = new ArrayList<>();
+        JhpParser.FormalParameterListContext paramsCtx = ctx.formalParameterList();
+        if (paramsCtx != null) {
+            for (JhpParser.FormalParameterContext param : paramsCtx.formalParameter()) {
+                String paramType = "Object"; // 缺省类型
+                if (param.typeHint() != null) {
+                    paramType = JhpUtils.mapTypeHint(param.typeHint());
+                }
+                // variableInitializer 必须包含 VarName
+                String varName = param.variableInitializer().VarName().getText();
+                varName = varName.substring(1); // 去掉 $
+                paramDecls.add(paramType + " " + varName);
+                // 将参数类型注册到符号表（便于函数体内部使用）
+                varProc.setVariableType(varName, paramType);
+            }
+        }
+
+        // 输出方法签名
+        JhpUtils.printIndent(out, indentLevel);
+        String staticString = (needStatic == 1) ? "static " : ""; // 如果是单文件编译并运行，方法需要 static
+        out.printf("public %s %s %s(%s) %n",staticString, returnType, funcName, String.join(", ", paramDecls));
+        
+        // 方法体
+        visit(ctx.blockStatement());
+
+        return null;
+    }
 
     @Override
     public Void visitContinueStatement(JhpParser.ContinueStatementContext ctx) {
@@ -377,6 +446,40 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         indent();
         out.println("return " + returnCode + ";");
         return null;
+    }
+
+    private void clazzProcess(JhpParser.PhpFileContext ctx) {
+        // 找出唯一的 classDeclaration
+        JhpParser.ClassDeclarationContext classCtx = null;
+        for (ParseTree child : ctx.children) {
+            if (child instanceof JhpParser.TopStatementContext topCtx) {
+                if (topCtx.classDeclaration() != null) {
+                    if (classCtx != null) {
+                        System.err.println("Error: mode 3 expects exactly one class in the file");
+                        return;
+                    }
+                    classCtx = topCtx.classDeclaration();
+                }
+            }
+        }
+        if (classCtx == null) {
+            System.err.println("Error: mode 3 requires a class definition");
+            return;
+        }
+
+        // 生成 Java class，类名取自 PHP 类名
+        String phpClassName = classCtx.identifier().getText();
+        // TODO: 处理 extends, implements 等，目前先简单输出
+        out.println("public class " + phpClassName + " {");
+        indentLevel++;
+
+        // 输出类成员（classStatement），这里暂时略，以后实现 classStatement 访问器时填充
+        // 现在直接 visit classDeclaration？但需要完整实现 classDeclaration 翻译。
+        // 为保持可编译，暂时输出一个空类体
+        System.err.println("Warning: class body not yet implemented");
+
+        indentLevel--;
+        out.println("}");
     }
 
 }

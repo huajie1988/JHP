@@ -48,36 +48,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitTopStatement(JhpParser.TopStatementContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#useDeclaration}.
-	 * @param ctx the parse tree
-	 */
-	void enterUseDeclaration(JhpParser.UseDeclarationContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#useDeclaration}.
-	 * @param ctx the parse tree
-	 */
-	void exitUseDeclaration(JhpParser.UseDeclarationContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#useDeclarationContentList}.
-	 * @param ctx the parse tree
-	 */
-	void enterUseDeclarationContentList(JhpParser.UseDeclarationContentListContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#useDeclarationContentList}.
-	 * @param ctx the parse tree
-	 */
-	void exitUseDeclarationContentList(JhpParser.UseDeclarationContentListContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#useDeclarationContent}.
-	 * @param ctx the parse tree
-	 */
-	void enterUseDeclarationContent(JhpParser.UseDeclarationContentContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#useDeclarationContent}.
-	 * @param ctx the parse tree
-	 */
-	void exitUseDeclarationContent(JhpParser.UseDeclarationContentContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#namespaceDeclaration}.
 	 * @param ctx the parse tree
 	 */
@@ -448,16 +418,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitExpressionStatement(JhpParser.ExpressionStatementContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#unsetStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterUnsetStatement(JhpParser.UnsetStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#unsetStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitUnsetStatement(JhpParser.UnsetStatementContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#foreachStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -508,46 +468,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitThrowStatement(JhpParser.ThrowStatementContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#gotoStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterGotoStatement(JhpParser.GotoStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#gotoStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitGotoStatement(JhpParser.GotoStatementContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#declareStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclareStatement(JhpParser.DeclareStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#declareStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclareStatement(JhpParser.DeclareStatementContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#declareList}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclareList(JhpParser.DeclareListContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#declareList}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclareList(JhpParser.DeclareListContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#directive}.
-	 * @param ctx the parse tree
-	 */
-	void enterDirective(JhpParser.DirectiveContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#directive}.
-	 * @param ctx the parse tree
-	 */
-	void exitDirective(JhpParser.DirectiveContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#formalParameterList}.
 	 * @param ctx the parse tree
 	 */
@@ -577,26 +497,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitTypeHint(JhpParser.TypeHintContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#globalStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterGlobalStatement(JhpParser.GlobalStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#globalStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitGlobalStatement(JhpParser.GlobalStatementContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#globalVar}.
-	 * @param ctx the parse tree
-	 */
-	void enterGlobalVar(JhpParser.GlobalVarContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#globalVar}.
-	 * @param ctx the parse tree
-	 */
-	void exitGlobalVar(JhpParser.GlobalVarContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link JhpParser#echoStatement}.
 	 * @param ctx the parse tree
@@ -748,16 +648,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitIdentifierInitializer(JhpParser.IdentifierInitializerContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#globalConstantDeclaration}.
-	 * @param ctx the parse tree
-	 */
-	void enterGlobalConstantDeclaration(JhpParser.GlobalConstantDeclarationContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#globalConstantDeclaration}.
-	 * @param ctx the parse tree
-	 */
-	void exitGlobalConstantDeclaration(JhpParser.GlobalConstantDeclarationContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#enumDeclaration}.
 	 * @param ctx the parse tree
 	 */
@@ -822,18 +712,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitLogicalAndExpression(JhpParser.LogicalAndExpressionContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code SpecialWordExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterSpecialWordExpression(JhpParser.SpecialWordExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code SpecialWordExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitSpecialWordExpression(JhpParser.SpecialWordExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code ExponentiationExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -857,18 +735,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitArrayCreationExpression(JhpParser.ArrayCreationExpressionContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code BackQuoteStringExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterBackQuoteStringExpression(JhpParser.BackQuoteStringExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code BackQuoteStringExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitBackQuoteStringExpression(JhpParser.BackQuoteStringExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code MatchExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
@@ -917,18 +783,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPostfixIncDecExpression(JhpParser.PostfixIncDecExpressionContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code IncludeExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterIncludeExpression(JhpParser.IncludeExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code IncludeExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitIncludeExpression(JhpParser.IncludeExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code BitwiseExcOrExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
@@ -1122,18 +976,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitPrefixIncDecExpression(JhpParser.PrefixIncDecExpressionContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code RequireExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterRequireExpression(JhpParser.RequireExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code RequireExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitRequireExpression(JhpParser.RequireExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code BitwiseAndExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -1206,18 +1048,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitArrayDestructExpression(JhpParser.ArrayDestructExpressionContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code LambdaFunctionExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void enterLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code LambdaFunctionExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 */
-	void exitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code CoalesceExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -1280,16 +1110,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitKeyedDestructItem(JhpParser.KeyedDestructItemContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#matchExpr}.
 	 * @param ctx the parse tree
 	 */
@@ -1330,16 +1150,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitAssignmentOperator(JhpParser.AssignmentOperatorContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link JhpParser#yieldExpression}.
-	 * @param ctx the parse tree
-	 */
-	void enterYieldExpression(JhpParser.YieldExpressionContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#yieldExpression}.
-	 * @param ctx the parse tree
-	 */
-	void exitYieldExpression(JhpParser.YieldExpressionContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link JhpParser#arrayItemList}.
 	 * @param ctx the parse tree
 	 */
@@ -1359,26 +1169,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitArrayItem(JhpParser.ArrayItemContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#lambdaFunctionUseVars}.
-	 * @param ctx the parse tree
-	 */
-	void enterLambdaFunctionUseVars(JhpParser.LambdaFunctionUseVarsContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#lambdaFunctionUseVars}.
-	 * @param ctx the parse tree
-	 */
-	void exitLambdaFunctionUseVars(JhpParser.LambdaFunctionUseVarsContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#lambdaFunctionUseVar}.
-	 * @param ctx the parse tree
-	 */
-	void enterLambdaFunctionUseVar(JhpParser.LambdaFunctionUseVarContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#lambdaFunctionUseVar}.
-	 * @param ctx the parse tree
-	 */
-	void exitLambdaFunctionUseVar(JhpParser.LambdaFunctionUseVarContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link JhpParser#qualifiedStaticTypeRef}.
 	 * @param ctx the parse tree

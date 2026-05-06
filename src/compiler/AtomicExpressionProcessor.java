@@ -21,6 +21,11 @@ public class AtomicExpressionProcessor {
     }        
     public String generateChain(JhpParser.ChainExpressionContext ctx, int indent) {
         JhpParser.ChainContext chain = ctx.chain();
+        // 如果是函数调用，生成函数调用代码
+        // （或后续有成员访问，但保持基本函数调用）
+        if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
+            return generateFunctionCall(chain, indent);
+        }
         String varName = getBaseVarName(chain);
         List<String> subscripts = extractSubscripts(chain);
         if (subscripts.isEmpty()) {
@@ -135,6 +140,108 @@ public class AtomicExpressionProcessor {
         String index = exprProc.generateExpression(ctx.expression(), indent);
         // PHP 字符串下标返回字符，Java 用 charAt + String.valueOf 包装
         return "String.valueOf(" + str + ".charAt(" + index + "))";
+    }
+
+    private String generateFunctionCall(JhpParser.ChainContext chain, int indent) {
+        JhpParser.FunctionCallContext funcCall = chain.chainOrigin().functionCall();
+        JhpParser.FunctionCallNameContext fcn = funcCall.functionCallName();
+        
+        // 解析方法名（可能包含完整限定路径）
+        String methodPath = extractFunctionName(fcn, indent);
+        String args = generateArguments(funcCall.actualArguments(), indent);
+        
+        // 基础调用：methodPath(args)
+        StringBuilder result = new StringBuilder(methodPath).append("(").append(args).append(")");
+        
+        // 处理后续的 memberAccess（-> 调用链）
+        for (JhpParser.MemberAccessContext memberAccess : chain.memberAccess()) {
+            result.append(generateMemberAccess(memberAccess, indent));
+        }
+        return result.toString();
+    }
+
+    /**
+    * 从 functionCallName 解析出 Java 可调用的方法路径。
+    * 支持：
+    * - qualifiedNamespaceName → 完整限定名（\ 替换为 .）
+    * - classConstant → Class::method 翻译为 Class.method
+    * - parentheses → (expr) 动态函数名
+    * - chainBase → 变量调用（简单处理）
+     */
+    private String extractFunctionName(JhpParser.FunctionCallNameContext fcn, int indent) {
+        if (fcn.qualifiedNamespaceName() != null) {
+            String fullName = fcn.qualifiedNamespaceName().getText();
+            // 去除前导反斜杠
+            fullName = fullName.replaceAll("^\\\\+", "");
+            // 将剩余反斜杠替换为 .
+            fullName = fullName.replace("\\", ".");
+            return fullName;
+        } else if (fcn.classConstant() != null) {
+            JhpParser.ClassConstantContext cc = fcn.classConstant();
+            if (cc.Parent_() != null || cc.Class() != null) {
+                // Parent_ :: method 等，暂不处理，返回原样
+                return cc.getText();
+            }
+            // 左侧是 qualifiedStaticTypeRef 或 keyedVariable 或 string
+            String leftPart;
+            if (cc.qualifiedStaticTypeRef() != null) {
+                leftPart = cc.qualifiedStaticTypeRef().getText().replace("\\", ".");
+            } else if (cc.keyedVariable() != null) {
+                leftPart = JhpUtils.getVarNameFromChain(null); // 需要从 keyedVariable 提取，暂略
+                // 简化：keyedVariable 文本去掉 $ 等
+                leftPart = cc.keyedVariable(0).getText().replace("$", "");
+            } else if (cc.string() != null) {
+                leftPart = cc.string().getText(); // 字符串常量，不适合调用
+            } else {
+                leftPart = cc.getText();
+            }
+            // 右侧 identifier 或 keyedVariable
+            String rightPart = "";
+            if (cc.identifier() != null) {
+                rightPart = cc.identifier().getText();
+            } else if (cc.keyedVariable() != null) {
+                rightPart = cc.keyedVariable(0).getText().replace("$", "");
+            }
+            return leftPart + "." + rightPart;
+        } else if (fcn.parentheses() != null) {
+            // 动态函数名，返回表达式
+            return "(" + exprProc.generateExpression(fcn.parentheses().expression(), indent) + ")";
+        } else if (fcn.chainBase() != null) {
+            // $var() 形式，暂不支持，返回变量名
+            return JhpUtils.getVarNameFromChain(/* 需要 chain 上下文，但这里没有 */ null);
+        }
+        return fcn.getText(); // 回退
+    }
+
+    /**
+     * 生成参数列表字符串（逗号分隔的表达式）。
+     */
+    private String generateArguments(JhpParser.ActualArgumentsContext aac, int indent) {
+        if (aac == null || aac.arguments() == null || aac.arguments().isEmpty()) {
+            return "";
+        }
+        List<String> argExprs = new ArrayList<>();
+        for (JhpParser.ArgumentsContext argsCtx : aac.arguments()) {
+            for (JhpParser.ActualArgumentContext actArg : argsCtx.actualArgument()) {
+                // 忽略 argumentName （如 name: ），只处理表达式
+                if (actArg.expression() != null) {
+                    argExprs.add(exprProc.generateExpression(actArg.expression(), indent));
+                }
+                // 忽略 '&' chain（引用传递已删除）
+            }
+        }
+        return String.join(", ", argExprs);
+    }
+
+    /** 处理 memberAccess：将其转换为 .methodName(args) */
+    private String generateMemberAccess(JhpParser.MemberAccessContext ctx, int indent) {
+        String methodName = ctx.keyedFieldName().getText(); // 可能需要处理复杂 keyedFieldName
+        // 处理实际参数
+        String args = "";
+        if (ctx.actualArguments() != null) {
+            args = generateArguments(ctx.actualArguments(), indent);
+        }
+        return "." + methodName + "(" + args + ")";
     }
 
 }

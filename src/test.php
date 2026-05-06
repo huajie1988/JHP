@@ -172,13 +172,27 @@ $map3 = [
 // echo $map3["person1"]["name"], "\n";
 // echo $m["name"], "\n"; // "Alice3"
 
+function func1(string $b,int $c) : string {
+    echo "Hello from func1\n",$c;
+    return "Result from func1".$b;
+}
+
+
+$fffff = func1(" PHP", 100);
+
+echo $fffff, "\n";
+function func2() : void {
+    echo "Hello from func2\n";
+}
+
+
 foreach ($array as $row) {
     echo $row, ":\n";
     foreach ($row as $k2=>$value) {
         echo $k2, ": ", $value, "\n";
     }
 }
-
+func2();
 // foreach ($map3 as $personInfo) {
     
 //     foreach ($personInfo as $infoValue) {

@@ -35,24 +35,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTopStatement(JhpParser.TopStatementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#useDeclaration}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUseDeclaration(JhpParser.UseDeclarationContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#useDeclarationContentList}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUseDeclarationContentList(JhpParser.UseDeclarationContentListContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#useDeclarationContent}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUseDeclarationContent(JhpParser.UseDeclarationContentContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#namespaceDeclaration}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -275,12 +257,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionStatement(JhpParser.ExpressionStatementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#unsetStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUnsetStatement(JhpParser.UnsetStatementContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#foreachStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -311,30 +287,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitThrowStatement(JhpParser.ThrowStatementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#gotoStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGotoStatement(JhpParser.GotoStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#declareStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDeclareStatement(JhpParser.DeclareStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#declareList}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDeclareList(JhpParser.DeclareListContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#directive}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDirective(JhpParser.DirectiveContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#formalParameterList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -352,18 +304,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTypeHint(JhpParser.TypeHintContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#globalStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGlobalStatement(JhpParser.GlobalStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#globalVar}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGlobalVar(JhpParser.GlobalVarContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link JhpParser#echoStatement}.
 	 * @param ctx the parse tree
@@ -455,12 +395,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIdentifierInitializer(JhpParser.IdentifierInitializerContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#globalConstantDeclaration}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitGlobalConstantDeclaration(JhpParser.GlobalConstantDeclarationContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#enumDeclaration}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -499,13 +433,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLogicalAndExpression(JhpParser.LogicalAndExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code SpecialWordExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSpecialWordExpression(JhpParser.SpecialWordExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code ExponentiationExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -519,13 +446,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitArrayCreationExpression(JhpParser.ArrayCreationExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code BackQuoteStringExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitBackQuoteStringExpression(JhpParser.BackQuoteStringExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code MatchExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
@@ -554,13 +474,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitPostfixIncDecExpression(JhpParser.PostfixIncDecExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code IncludeExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitIncludeExpression(JhpParser.IncludeExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code BitwiseExcOrExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
@@ -674,13 +587,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPrefixIncDecExpression(JhpParser.PrefixIncDecExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code RequireExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitRequireExpression(JhpParser.RequireExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code BitwiseAndExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -723,13 +629,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArrayDestructExpression(JhpParser.ArrayDestructExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code LambdaFunctionExpression}
-	 * labeled alternative in {@link JhpParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code CoalesceExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -767,12 +666,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitKeyedDestructItem(JhpParser.KeyedDestructItemContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#matchExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -797,12 +690,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAssignmentOperator(JhpParser.AssignmentOperatorContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link JhpParser#yieldExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitYieldExpression(JhpParser.YieldExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link JhpParser#arrayItemList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -814,18 +701,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitArrayItem(JhpParser.ArrayItemContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#lambdaFunctionUseVars}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLambdaFunctionUseVars(JhpParser.LambdaFunctionUseVarsContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#lambdaFunctionUseVar}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLambdaFunctionUseVar(JhpParser.LambdaFunctionUseVarContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link JhpParser#qualifiedStaticTypeRef}.
 	 * @param ctx the parse tree

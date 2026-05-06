@@ -143,4 +143,36 @@ public final class JhpUtils {
         return "Object";
     }
 
+    // 辅助方法：将 PHP typeHint 转为 Java 类型字符串
+    public static String mapTypeHint(JhpParser.TypeHintContext typeHint) {
+        // System.err.println("DEBUG: mapping type hint: " +typeHint.qualifiedStaticTypeRef().getText());
+        if (typeHint.primitiveType() != null) {
+            return JhpUtils.mapJhpTypeToJavaType(typeHint.primitiveType().getText());
+        } else if (typeHint.qualifiedStaticTypeRef() != null) {
+            return typeHint.qualifiedStaticTypeRef().getText();
+        } else if (typeHint.Callable() != null) {
+            return "Object"; // 简化处理
+        }
+        return "Object";
+    }
+
+    public static String resolveFunctionNameForInfer(JhpParser.FunctionCallNameContext fcn) {
+        if (fcn.qualifiedNamespaceName() != null) {
+            String fullName = fcn.qualifiedNamespaceName().getText()
+                    .replaceAll("^\\\\+", "")
+                    .replace("\\", ".");
+            return fullName;
+        } else if (fcn.classConstant() != null) {
+            JhpParser.ClassConstantContext cc = fcn.classConstant();
+            String left = cc.qualifiedStaticTypeRef() != null
+                    ? cc.qualifiedStaticTypeRef().getText().replace("\\", ".")
+                    : "";
+            String right = cc.identifier() != null ? cc.identifier().getText() : "";
+            return left + "." + right;
+        } else if (fcn.parentheses() != null || fcn.chainBase() != null) {
+            // 动态函数调用或变量调用无法静态推断，返回 null 后使用 Object
+            return null;
+        }
+        return fcn.getText();
+    }
 }

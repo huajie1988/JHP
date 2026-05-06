@@ -138,6 +138,10 @@ public class ExpressionProcessor {
         return varProc.getVariableType(varName);
     }
 
+    public String getReturnTypeOfFunction(String funcName) {
+        return varProc.getFunctionReturnType(funcName);
+    }
+
     // 新增辅助方法：将 expressionList 转换为逗号分隔的表达式代码
     public String generateExpressionList(JhpParser.ExpressionListContext ctx, int indent) {
         if (ctx == null || ctx.expression() == null) return "";

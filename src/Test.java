@@ -1,6 +1,14 @@
 import java.util.*;
-import java.math.BigDecimal;
-public class GeneratedClass {
+public class Test {
+    public static  String func1(String b, Integer c) 
+    {
+        runtime.JhpRuntime.echo("Hello from func1\n", c);
+        return "Result from func1" + b;
+    }
+    public static  void func2() 
+    {
+        runtime.JhpRuntime.echo("Hello from func2\n");
+    }
     public static void main(String[] args) {
         ArrayList<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4 + 1));
         HashMap<String, Object> map = new HashMap<>() {{
@@ -21,6 +29,8 @@ public class GeneratedClass {
             put("age", 25);
         }});
         }};
+        String fffff = func1(" PHP", 100);
+        runtime.JhpRuntime.echo(fffff, "\n");
         for (ArrayList<Integer> row : array) {
             {
                 runtime.JhpRuntime.echo(row, ":\n");
@@ -32,5 +42,6 @@ public class GeneratedClass {
                 }
             }
         }
+        func2();
     }
 }

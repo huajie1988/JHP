@@ -65,42 +65,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterUseDeclaration(JhpParser.UseDeclarationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitUseDeclaration(JhpParser.UseDeclarationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterUseDeclarationContentList(JhpParser.UseDeclarationContentListContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitUseDeclarationContentList(JhpParser.UseDeclarationContentListContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterUseDeclarationContent(JhpParser.UseDeclarationContentContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitUseDeclarationContent(JhpParser.UseDeclarationContentContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterNamespaceDeclaration(JhpParser.NamespaceDeclarationContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -545,18 +509,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterUnsetStatement(JhpParser.UnsetStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitUnsetStatement(JhpParser.UnsetStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterForeachStatement(JhpParser.ForeachStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -617,54 +569,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterGotoStatement(JhpParser.GotoStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGotoStatement(JhpParser.GotoStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterDeclareStatement(JhpParser.DeclareStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDeclareStatement(JhpParser.DeclareStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterDeclareList(JhpParser.DeclareListContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDeclareList(JhpParser.DeclareListContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterDirective(JhpParser.DirectiveContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDirective(JhpParser.DirectiveContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterFormalParameterList(JhpParser.FormalParameterListContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -696,30 +600,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTypeHint(JhpParser.TypeHintContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGlobalStatement(JhpParser.GlobalStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGlobalStatement(JhpParser.GlobalStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterGlobalVar(JhpParser.GlobalVarContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGlobalVar(JhpParser.GlobalVarContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -905,18 +785,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterGlobalConstantDeclaration(JhpParser.GlobalConstantDeclarationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitGlobalConstantDeclaration(JhpParser.GlobalConstantDeclarationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterEnumDeclaration(JhpParser.EnumDeclarationContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -989,18 +857,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSpecialWordExpression(JhpParser.SpecialWordExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSpecialWordExpression(JhpParser.SpecialWordExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterExponentiationExpression(JhpParser.ExponentiationExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1020,18 +876,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArrayCreationExpression(JhpParser.ArrayCreationExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterBackQuoteStringExpression(JhpParser.BackQuoteStringExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitBackQuoteStringExpression(JhpParser.BackQuoteStringExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1080,18 +924,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPostfixIncDecExpression(JhpParser.PostfixIncDecExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterIncludeExpression(JhpParser.IncludeExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitIncludeExpression(JhpParser.IncludeExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1289,18 +1121,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRequireExpression(JhpParser.RequireExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitRequireExpression(JhpParser.RequireExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterBitwiseAndExpression(JhpParser.BitwiseAndExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1368,18 +1188,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArrayDestructExpression(JhpParser.ArrayDestructExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1457,18 +1265,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterMatchExpr(JhpParser.MatchExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1517,18 +1313,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterYieldExpression(JhpParser.YieldExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitYieldExpression(JhpParser.YieldExpressionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterArrayItemList(JhpParser.ArrayItemListContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1548,30 +1332,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArrayItem(JhpParser.ArrayItemContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLambdaFunctionUseVars(JhpParser.LambdaFunctionUseVarsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLambdaFunctionUseVars(JhpParser.LambdaFunctionUseVarsContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterLambdaFunctionUseVar(JhpParser.LambdaFunctionUseVarContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitLambdaFunctionUseVar(JhpParser.LambdaFunctionUseVarContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

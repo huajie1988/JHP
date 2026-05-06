@@ -17,6 +17,8 @@ public class VariableProcessor {
     private final Map<String, String> varTypes = new HashMap<>();
     // 临时存储当前待处理的属性（用于下一个语句）
     private List<JhpParser.AttributeGroupContext> currentAttributes = new ArrayList<>();
+    // 在 VariableProcessor 中添加
+    private final Map<String, String> funcReturnTypes = new HashMap<>();
 
     public VariableProcessor(PrintWriter out) {
         this.out = out;
@@ -135,6 +137,7 @@ public class VariableProcessor {
 
         String rightType = (explicitType != null) ? explicitType : exprProc.inferTypeFromExpression(rightExpr);
         System.err.println("DEBUG: inferred type for " + rightExpr.getText() + " is " + rightType);
+        
         String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
 
         if (!varTypes.containsKey(leftVar)) {
@@ -210,6 +213,22 @@ public class VariableProcessor {
     }
     public boolean isVariableDeclared(String varName) {
         return varTypes.containsKey(varName);
+    }
+
+    public void setFunctionReturnType(String funcName, String returnType) {
+        funcReturnTypes.put(funcName, returnType);
+    }
+
+    public String getFunctionReturnType(String funcName) {
+        if (funcName == null) return "Object";
+        // 先尝试完整名，若未找到则尝试最后一段（简单函数名）
+        if (funcReturnTypes.containsKey(funcName)) {
+            return funcReturnTypes.get(funcName);
+        }
+        // 提取最后一段名字
+        String[] parts = funcName.split("\\.");
+        String simpleName = parts[parts.length - 1];
+        return funcReturnTypes.getOrDefault(simpleName, "Object");
     }
 
 }
