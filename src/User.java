@@ -21,7 +21,7 @@ class User {
     public static final String CONCAT = "Hello";
     public void User(Integer id, String name, Boolean active) 
         {
-            super.__construct(id, name, active);
+            super(id, name, active);
             super.init();
             this.id = id;
             this.name = name;

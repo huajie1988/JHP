@@ -210,11 +210,17 @@ public class AtomicExpressionProcessor {
                 }
                 // 获取右侧方法名或关键字（Constructor、Get、Set 等）
                 String right = "";
+                System.err.println("DEBUG: Processing class constant function call: " + cc.Constructor());
                 if (cc.Constructor() != null) {
                     // 构造方法：直接返回 "super" 或 "this"，后面会自动拼括号和参数
                     return prefix;
                 } else if (cc.identifier() != null) {
-                    right = cc.identifier().getText();
+                    String id = cc.identifier().getText();
+                    if (id.equals("__construct")) {
+                        return prefix; // 构造调用
+                    } else {
+                        right = id;
+                    }
                 } else if (cc.Get() != null) {
                     right = cc.Get().getText();
                 } else if (cc.Set() != null) {
