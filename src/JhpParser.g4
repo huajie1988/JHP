@@ -688,10 +688,10 @@ modifier
 identifier
     : Label
     | Abstract
-    | Array
+    // | Array
     | As
     | BinaryCast
-    | BoolType
+    // | BoolType
     | BooleanConstant
     | Break
     | Callable
@@ -704,8 +704,8 @@ identifier
     // | Declare
     // | Default
     | Do
-    | DoubleCast
-    | DoubleType
+    // | DoubleCast
+    // | DoubleType
     | Echo
     | Else
     | ElseIf
@@ -721,7 +721,7 @@ identifier
     | Extends
     | Final
     | Finally
-    | FloatCast
+    // | FloatCast
     | For
     | Foreach
     | Function_
@@ -734,11 +734,11 @@ identifier
     // | IncludeOnce
     | InstanceOf
     | InsteadOf
-    | Int16Cast
-    | Int64Type
-    | Int8Cast
+    // | Int16Cast
+    // | Int64Type
+    // | Int8Cast
     | Interface
-    | IntType
+    // | IntType
     // | IsSet
     // | LambdaFn
     | List

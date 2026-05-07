@@ -55,6 +55,10 @@ public class ExpressionProcessor {
         // 后缀自增自减
         if (ctx instanceof JhpParser.PostfixIncDecExpressionContext) 
             return unary.generatePostfixIncDec((JhpParser.PostfixIncDecExpressionContext)ctx, indent);
+        if (ctx instanceof JhpParser.NewExpressionContext)
+            return unary.generateNewExpression((JhpParser.NewExpressionContext)ctx, indent);
+        
+
 
         // 二元表达式
         // 加法/字符串连接
@@ -168,5 +172,9 @@ public class ExpressionProcessor {
 
     public String generateConstantInitializer(JhpParser.ConstantInitializerContext ctx, int indent) {
         return atomic.generateConstantInitializer(ctx, indent);
+    }
+
+    public String generateChainCode(JhpParser.ChainContext chain, int indent) {
+        return atomic.generateChain(chain, indent);
     }
 }

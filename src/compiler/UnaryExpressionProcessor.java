@@ -42,4 +42,18 @@ public class UnaryExpressionProcessor {
         return operand + op;
     }
     
+    public String generateNewExpression(JhpParser.NewExpressionContext ctx, int indent) {
+        // 提取类型并转换为 Java 类名
+        JhpParser.TypeRefContext typeRef = ctx.newExpr().typeRef();
+        String javaType = JhpUtils.mapTypeRefToJava(typeRef);   // 将 PHP 类型引用转为 Java 类型字符串
+
+        // 生成参数列表字符串
+        String args = "";
+        if (ctx.newExpr().arguments() != null) {
+            // 复用现有的参数生成方式（直接从 arguments 提取）
+            args = JhpUtils.generateArgumentsString(ctx.newExpr().arguments(), exprProc, indent);
+        }
+        
+        return "new " + javaType + "(" + args + ")";
+    }
 }

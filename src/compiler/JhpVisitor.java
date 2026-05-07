@@ -473,6 +473,8 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             implementsClause = " implements " + String.join(", ", ifaces);
         }
 
+        varProc.setCurrentClassName(className);
+
         // 输出类头
         JhpUtils.printIndent(out, indentLevel);
         out.println(modifiers + "class " + className + extendsClause + implementsClause + " {");
@@ -489,6 +491,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         indentLevel--;
         JhpUtils.printIndent(out, indentLevel);
         out.println("}");
+        varProc.setCurrentClassName(null);
         return null;
     }
 
@@ -566,8 +569,67 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         }
         // 方法声明（先跳过，留空）
         if (stmt.Function_() != null) {
-            JhpUtils.printIndent(out, indentLevel);
-            out.println("// TODO: method declaration");
+            // 提取修饰符（public/private/protected/static/abstract/final）
+            String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
+            String methodName = stmt.identifier().getText();
+            boolean isConstructor = JhpUtils.isConstructor(methodName);
+            if (isConstructor) {
+                methodName = varProc.getCurrentClassName();   // 需要能获取到当前类名
+            }
+            // 处理参数列表，并将参数注册到符号表
+            List<String> paramStrs = new ArrayList<>();
+            if (stmt.formalParameterList() != null) {
+                for (JhpParser.FormalParameterContext param : stmt.formalParameterList().formalParameter()) {
+                    String paramType = "Object";
+                    if (param.typeHint() != null) {
+                        paramType = JhpUtils.mapTypeHint(param.typeHint());
+                    }
+                    String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
+                    paramStrs.add(paramType + " " + varName);
+                    varProc.setVariableType(varName, paramType); 
+                    // TODO: 暂存到全局符号表（后续可加入作用域管理）
+                }
+            }
+            String params = String.join(", ", paramStrs);
+
+            // 返回类型
+            String returnType = "void";
+            // System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
+            if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
+                // System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
+                returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint());
+            }
+
+            // 根据方法体类型生成代码
+            JhpParser.MethodBodyContext body = stmt.methodBody();
+            if (body != null) {
+                if (body.SemiColon() != null) {
+                    // 抽象方法（无方法体）
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
+                } else if (body.blockStatement() != null) {
+                    // 具体方法
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
+                    indentLevel++;
+
+                    // 处理构造器调用 baseCtorCall（仅限于构造方法）
+                    if (stmt.baseCtorCall() != null && isConstructor) {
+                        String superArgs = JhpUtils.generateArgumentsString(stmt.baseCtorCall().arguments(), exprProc, indentLevel);
+                        JhpUtils.printIndent(out, indentLevel);
+                        out.println("super(" + superArgs + ");");
+                    }
+
+                    visit(body.blockStatement()); // 递归翻译方法体
+                    indentLevel--;
+                    JhpUtils.printIndent(out, indentLevel);
+                    
+                }
+            }
+            if (!isConstructor) {
+                varProc.setFunctionReturnType( methodName, returnType);
+            }
+            return;
         }
     }
 

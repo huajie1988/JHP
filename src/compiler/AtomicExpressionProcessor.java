@@ -20,8 +20,8 @@ public class AtomicExpressionProcessor {
     public String generateScalar(JhpParser.ScalarExpressionContext ctx, int indentLevel) { 
         return ctx.getText();
     }        
-    public String generateChain(JhpParser.ChainExpressionContext ctx, int indent) {
-        JhpParser.ChainContext chain = ctx.chain();
+    public String generateChain(JhpParser.ChainContext chain, int indent) {
+        // JhpParser.ChainContext chain = ctx.chain();
         // 如果是函数调用，生成函数调用代码
         // （或后续有成员访问，但保持基本函数调用）
         if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
@@ -29,26 +29,38 @@ public class AtomicExpressionProcessor {
         }
         String varName = getBaseVarName(chain);
         List<String> subscripts = extractSubscripts(chain);
-        if (subscripts.isEmpty()) {
-            return varName;
-        }
-        String varType = exprProc.getVariableTypes(varName);
         String result = varName;
-        for (String index : subscripts) {
-            if (JhpUtils.isListType(varType)) {
-                result = result + ".get(" + index + ")";
-                // 更新 varType 为元素类型，以支持多级下标
-                varType = JhpUtils.extractElementType(varType);
-            } else if (JhpUtils.isMapType(varType)) {
-                result = result + ".get(" + index + ")";
-                varType = JhpUtils.extractElementType(varType);
-            } else {
-                // 类型未知或不是标准集合，使用运行时 helper（返回 Object，外部可能需要强转）
-                result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
-                varType = "Object";
+
+        // 处理下标访问（如 $arr[0]）
+        if (!subscripts.isEmpty()) {
+            String varType = exprProc.getVariableTypes(varName);
+            for (String index : subscripts) {
+                if (JhpUtils.isListType(varType)) {
+                    result = result + ".get(" + index + ")";
+                    varType = JhpUtils.extractElementType(varType);
+                } else if (JhpUtils.isMapType(varType)) {
+                    result = result + ".get(" + index + ")";
+                    varType = JhpUtils.extractElementType(varType);
+                } else {
+                    result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                    varType = "Object";
+                }
             }
         }
+
+
+        // 处理后续的 memberAccess（如 $this->score, $obj->method()）
+        for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+            System.err.println("DEBUG: Processing member access: " + ma.getText());
+            result += generateMemberAccess(ma, indent);
+            System.err.println("DEBUG: Result after member access: " + result);
+        }
         return result;
+    }
+
+    // 原有方法改为调用上面那个
+    public String generateChain(JhpParser.ChainExpressionContext ctx, int indent) {
+        return generateChain(ctx.chain(), indent);
     }
 
     // 提取最左侧的变量名（不包含下标）
@@ -164,9 +176,9 @@ public class AtomicExpressionProcessor {
         StringBuilder result = new StringBuilder(methodPath).append("(").append(args).append(")");
         
         // 处理后续的 memberAccess（-> 调用链）
-        for (JhpParser.MemberAccessContext memberAccess : chain.memberAccess()) {
-            result.append(generateMemberAccess(memberAccess, indent));
-        }
+        // for (JhpParser.MemberAccessContext memberAccess : chain.memberAccess()) {
+        //     result.append(generateMemberAccess(memberAccess, indent));
+        // }
         return result.toString();
     }
 
@@ -247,11 +259,14 @@ public class AtomicExpressionProcessor {
     private String generateMemberAccess(JhpParser.MemberAccessContext ctx, int indent) {
         String methodName = ctx.keyedFieldName().getText(); // 可能需要处理复杂 keyedFieldName
         // 处理实际参数
-        String args = "";
         if (ctx.actualArguments() != null) {
-            args = generateArguments(ctx.actualArguments(), indent);
-        }
+        // 有括号，是方法调用
+        String args = generateArguments(ctx.actualArguments(), indent);
         return "." + methodName + "(" + args + ")";
+        } else {
+            // 无括号，是属性访问
+            return "." + methodName;
+        }
     }
 
     private String generateConstant(JhpParser.ConstantContext c) {

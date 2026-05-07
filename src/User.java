@@ -1,5 +1,3 @@
-package App.Model;
-
 import java.util.*;
 class User {
     public Integer id;
@@ -21,4 +19,21 @@ class User {
     public static final Double PI = 3.14159;
     public static final Integer NEG = -10;
     public static final String CONCAT = "Hello";
-}
+    public void User(Integer id, String name, Boolean active) 
+        {
+            this.id = id;
+            this.name = name;
+            this.active = active;
+            this.init();
+        }
+        public Double getScore(Double multiplier, Double bonus) 
+        {
+            return (this.score * multiplier) + bonus;
+        }
+        protected void init() 
+        {
+            Double c = PI * 2.0;
+            Double a = this.getScore(2.0, 1.0);
+            runtime.JhpRuntime.echo("Score: ", a, "\n");
+        }
+    }

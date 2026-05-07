@@ -35,6 +35,28 @@ public class InferType {
                 String funcName = JhpUtils.resolveFunctionNameForInfer(funcCall.functionCallName());
                 return varProc.getFunctionReturnType(funcName);
             }
+
+            // 2. 链上有成员访问（如 $this->getScore()）
+            if (!chain.memberAccess().isEmpty()) {
+                // 获取最左侧的变量名（如 "this"）
+                String baseVar = JhpUtils.getVarNameFromChain(chain);
+                // 遍历成员访问，找出最后一个方法调用（有 actualArguments 的）
+                String methodName = null;
+                for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+                    if (ma.actualArguments() != null) {
+                        methodName = ma.keyedFieldName().getText();
+                    }
+                }
+                if (methodName != null) {
+                    // 尝试从已注册的返回类型中获取（若未注册，返回默认 Object）
+                    String type = varProc.getFunctionReturnType(methodName);
+                    if (!"Object".equals(type)) {
+                        return type;
+                    }
+                }
+                // 如果无法推断方法返回类型，则退回到变量类型（考虑下标）
+                // 继续执行下面的变量类型逻辑
+            }
             
             String varName = JhpUtils.getVarNameFromChain(chainCtx.chain());
             String varType = varProc.getVariableType(varName);
@@ -73,6 +95,10 @@ public class InferType {
             return "Boolean";
         } else if (ctx instanceof JhpParser.EqualityExpressionContext) {
             return "Boolean";
+        } else if(ctx instanceof JhpParser.NewExpressionContext) {
+            JhpParser.NewExpressionContext newExpr = (JhpParser.NewExpressionContext) ctx;
+            JhpParser.TypeRefContext typeRef = newExpr.newExpr().typeRef();
+            return JhpUtils.mapTypeRefToJava(typeRef);
         }
         return "Object";
     }

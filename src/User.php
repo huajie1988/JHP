@@ -1,8 +1,8 @@
 <?php
-namespace App\Model;
+// namespace App\Model;
 
 include java\util\*;
-
+// import java\math\BigDecimal;
 /**
  * 简单的类测试：包含属性、常量和初始化值。
  */
@@ -22,8 +22,20 @@ class User {
     const NEG = -10;
     const string CONCAT = "Hello" . "World";
     
+    public function __construct(int $id, string $name, bool $active) {
+        $this->id = $id;
+        $this->name = $name;
+        $this->active = $active;
+        $this->init();
+    }
     // 方法暂未实现，会生成 // TODO: method declaration
-    // public function getScore(): float {
-    //     return $this->score;
-    // }
+    public function getScore(float $multiplier,float $bonus): double {
+        return $this->score * $multiplier + $bonus;
+    }
+
+    protected function init(): void {
+        $c = PI * 2.0;
+        $a = $this->getScore(2.0, 1.0);
+        echo "Score: ", $a, "\n";
+    }
 }

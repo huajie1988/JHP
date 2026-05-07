@@ -269,4 +269,78 @@ public final class JhpUtils {
         return "public ";
     }
 
+    /**
+     * 从成员修饰符列表中提取 Java 方法修饰符（public/private/protected/static/abstract/final）
+     */
+    public static String extractMethodModifiers(JhpParser.MemberModifiersContext modifiersCtx) {
+        if (modifiersCtx == null) return "public ";
+        StringBuilder sb = new StringBuilder();
+        boolean hasAccess = false;
+        for (JhpParser.MemberModifierContext m : modifiersCtx.memberModifier()) {
+            String text = m.getText().toLowerCase();
+            if (text.equals("public") || text.equals("private") || text.equals("protected")) {
+                sb.append(text).append(" ");
+                hasAccess = true;
+            } else if (text.equals("static") || text.equals("abstract") || text.equals("final")) {
+                sb.append(text).append(" ");
+            }
+            // readonly 只用于属性，方法可忽略
+        }
+        if (!hasAccess) {
+            sb.insert(0, "public "); // 默认 public
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将方法参数列表 (ArgumentsContext) 转换为逗号分隔的表达式字符串
+     */
+    public static String generateArgumentsString(JhpParser.ArgumentsContext argsCtx, ExpressionProcessor exprProc, int indentLevel) {
+        if (argsCtx == null || argsCtx.actualArgument() == null) return "";
+        List<String> args = new ArrayList<>();
+        for (JhpParser.ActualArgumentContext arg : argsCtx.actualArgument()) {
+            if (arg.expression() != null) {
+                args.add(exprProc.generateExpression(arg.expression(), indentLevel));
+            }
+        }
+        return String.join(", ", args);
+    }
+
+    public static boolean isConstructor(String methodName) {
+        return methodName.equals("__construct") || methodName.equals("Constructor");
+    }
+
+    // JhpUtils.java 新增方法
+    public static String convertExplicitTypeString(String typeString) {
+        if (typeString == null || typeString.isEmpty()) return "Object";
+        // 替换泛型语法：<: -> <, :> -> >
+        String s = typeString.replace("<:", "<").replace(":>", ">");
+        // 也可以用方括号，如果有需要一并替换
+        // s = s.replace('[', '<').replace(']', '>');
+
+        // 递归处理基本类型映射
+        StringBuilder sb = new StringBuilder();
+        int i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == ',' || c == '<' || c == '>' || Character.isWhitespace(c)) {
+                sb.append(c);
+                i++;
+            } else if (Character.isJavaIdentifierStart(c)) {
+                int start = i;
+                while (i < s.length() && Character.isJavaIdentifierPart(s.charAt(i))) {
+                    i++;
+                }
+                String word = s.substring(start, i);
+                String mapped = mapJhpTypeToJavaType(word);
+                sb.append(mapped); // 如果是基本类型则映射，否则保持原样
+            } else {
+                // 跳过未知字符（理论上不会出现）
+                sb.append(c);
+                i++;
+            }
+        }
+        return sb.toString();
+    }
+
 }

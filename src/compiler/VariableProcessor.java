@@ -20,10 +20,20 @@ public class VariableProcessor {
     // 在 VariableProcessor 中添加
     private final Map<String, String> funcReturnTypes = new HashMap<>();
 
+    // 新增字段
+    private String currentClassName = null;
+
     public VariableProcessor(PrintWriter out) {
         this.out = out;
     }
 
+    public void setCurrentClassName(String className) {
+        this.currentClassName = className;
+    }
+
+    public String getCurrentClassName() {
+        return this.currentClassName;
+    }
     public void setExprProcessor(ExpressionProcessor exprProc) {
         this.exprProc = exprProc;
     }
@@ -45,11 +55,21 @@ public class VariableProcessor {
     }
 
     /**
+     * 判断左值是否包含对象成员访问（->）
+     */
+    private boolean hasMemberAccess(JhpParser.AssignableContext ctx) {
+        if (ctx.chain() != null) {
+            return !ctx.chain().memberAccess().isEmpty();
+        }
+        return false;
+    }
+
+    /**
      * 处理赋值语句，生成 Java 声明或赋值代码
      */
 
     public void handleAssignment(JhpParser.AssignmentExpressionContext ctx, int indentLevel) {
-        String leftVar = JhpUtils.getAssignableVarName(ctx.assignable());
+        JhpParser.AssignableContext assignable = ctx.assignable();
         JhpParser.ExpressionContext rightExpr = ctx.expression();
         String assignOp = ctx.assignmentOperator().getText();
 
@@ -58,14 +78,30 @@ public class VariableProcessor {
         if (assignOp.equals("=")) {
             if (isIndexedAssignable(ctx.assignable())) {
                 handleIndexedAssignment(ctx, indentLevel);
+            } else if (hasMemberAccess(assignable)) {
+                // 对象属性 / 方法链赋值
+                String leftCode = exprProc.generateChainCode(assignable.chain(), indentLevel);
+                String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s = %s;%n", leftCode, rightCode);
             } else {
+                // 普通变量
+                String leftVar = JhpUtils.getAssignableVarName(assignable);
                 handleSimpleAssignment(leftVar, rightExpr, indentLevel);
             }
         } else {
             if (isIndexedAssignable(ctx.assignable())) {
                 System.err.println("Compound assignment on array element is not supported yet.");
                 // 暂时忽略，或可扩展为 取值 -> 运算 -> 赋值
+            } else if (hasMemberAccess(assignable)) {
+                String leftCode = exprProc.generateChainCode(assignable.chain(), indentLevel);
+                String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
+                String baseOp = assignOp.substring(0, assignOp.length() - 1);
+                String javaOp = baseOp.equals(".") ? "+" : baseOp;
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s= %s;%n", leftCode, javaOp, rightCode);
             } else {
+                String leftVar = JhpUtils.getAssignableVarName(assignable);
                 handleCompoundAssignment(leftVar, assignOp, rightExpr, indentLevel);
             }
         }
@@ -196,7 +232,7 @@ public class VariableProcessor {
                         if (typeArg.startsWith("\"") || typeArg.startsWith("'")) {
                             typeArg = typeArg.substring(1, typeArg.length() - 1);
                         }
-                        return JhpUtils.mapJhpTypeToJavaType(typeArg);
+                        return JhpUtils.convertExplicitTypeString(typeArg);
                     }
                 }
             }
@@ -205,30 +241,54 @@ public class VariableProcessor {
     }
 
     public String getVariableType(String varName) { 
-        return varTypes.getOrDefault(varName, "Object");
+        String key = varName;
+        if (currentClassName != null && !currentClassName.isEmpty()) {
+            key = currentClassName + "." + varName;
+        }
+        return varTypes.getOrDefault(key, "Object");
     }
 
     public void setVariableType(String varName, String varType) {
-        varTypes.put(varName, varType);
+        String key = varName;
+        if (currentClassName != null && !currentClassName.isEmpty()) {
+            key = currentClassName + "." + varName;
+        }
+        varTypes.put( key, varType);
     }
     public boolean isVariableDeclared(String varName) {
         return varTypes.containsKey(varName);
     }
 
     public void setFunctionReturnType(String funcName, String returnType) {
-        funcReturnTypes.put(funcName, returnType);
+        String key = funcName;
+        if (currentClassName != null && !currentClassName.isEmpty()) {
+            key = currentClassName + "." + funcName;
+        }
+        funcReturnTypes.put(key, returnType);
     }
 
     public String getFunctionReturnType(String funcName) {
         if (funcName == null) return "Object";
-        // 先尝试完整名，若未找到则尝试最后一段（简单函数名）
+        // 如果在类内部，则优先尝试“类名.方法名”键
+        if (currentClassName != null && !currentClassName.isEmpty()) {
+            String classKey = currentClassName + "." + funcName;
+            if (funcReturnTypes.containsKey(classKey)) {
+                return funcReturnTypes.get(classKey);
+            }
+        }
+        // 其次尝试简单方法名（用于全局函数）
         if (funcReturnTypes.containsKey(funcName)) {
             return funcReturnTypes.get(funcName);
         }
+
         // 提取最后一段名字
-        String[] parts = funcName.split("\\.");
-        String simpleName = parts[parts.length - 1];
-        return funcReturnTypes.getOrDefault(simpleName, "Object");
+        // String[] parts = funcName.split("\\.");
+        // String simpleName = parts[parts.length - 1];
+        // return funcReturnTypes.getOrDefault(simpleName, "Object");
+
+        // 都没有，返回 Object
+        return "Object";
+
     }
 
 }
