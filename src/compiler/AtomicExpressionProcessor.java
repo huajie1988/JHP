@@ -202,7 +202,25 @@ public class AtomicExpressionProcessor {
             JhpParser.ClassConstantContext cc = fcn.classConstant();
             if (cc.Parent_() != null || cc.Class() != null) {
                 // Parent_ :: method 等，暂不处理，返回原样
-                return cc.getText();
+                String prefix = "";
+                if (cc.Parent_() != null) {
+                    prefix = "super";  // parent 对应 Java 的 super
+                } else if (cc.Class() != null) {
+                    prefix = "this";   // class 对应 Java 的 this（静态上下文暂不考虑）
+                }
+                // 获取右侧方法名或关键字（Constructor、Get、Set 等）
+                String right = "";
+                if (cc.Constructor() != null) {
+                    // 构造方法：直接返回 "super" 或 "this"，后面会自动拼括号和参数
+                    return prefix;
+                } else if (cc.identifier() != null) {
+                    right = cc.identifier().getText();
+                } else if (cc.Get() != null) {
+                    right = cc.Get().getText();
+                } else if (cc.Set() != null) {
+                    right = cc.Set().getText();
+                }
+                return prefix + "." + right;
             }
             // 左侧是 qualifiedStaticTypeRef 或 keyedVariable 或 string
             String leftPart;

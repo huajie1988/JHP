@@ -567,7 +567,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             }
             return;
         }
-        // 方法声明（先跳过，留空）
+        
         if (stmt.Function_() != null) {
             // 提取修饰符（public/private/protected/static/abstract/final）
             String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
@@ -587,7 +587,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                     String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
                     paramStrs.add(paramType + " " + varName);
                     varProc.setVariableType(varName, paramType); 
-                    // TODO: 暂存到全局符号表（后续可加入作用域管理）
+                    
                 }
             }
             String params = String.join(", ", paramStrs);
@@ -612,7 +612,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                     JhpUtils.printIndent(out, indentLevel);
                     out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
                     indentLevel++;
-
+                    // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
                     // 处理构造器调用 baseCtorCall（仅限于构造方法）
                     if (stmt.baseCtorCall() != null && isConstructor) {
                         String superArgs = JhpUtils.generateArgumentsString(stmt.baseCtorCall().arguments(), exprProc, indentLevel);

@@ -23,6 +23,8 @@ class User {
     const string CONCAT = "Hello" . "World";
     
     public function __construct(int $id, string $name, bool $active) {
+        parent::__construct($id, $name, $active);  // 调用父类构造器（如果有）
+        parent::init();  // 调用父类初始化方法（如果有）
         $this->id = $id;
         $this->name = $name;
         $this->active = $active;
