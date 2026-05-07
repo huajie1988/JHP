@@ -252,7 +252,7 @@ Quote : '\'';
 BackQuote : '`';
 
 VarName : '$' NameString;
-Label : [a-zA-Z_][a-z_0-9]*;
+Label : [a-zA-Z_][a-zA-Z_0-9]*;
 Octal : '0' 'o'? OctalDigit+ ('_' OctalDigit+)*;
 Decimal : '0' | NonZeroDigit Digit* ('_' Digit+)*;
 Real : (LNum '.' LNum? | LNum? '.' LNum) ExponentPart? | LNum+ ExponentPart;

@@ -53,6 +53,18 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterImportPath(JhpParser.ImportPathContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitImportPath(JhpParser.ImportPathContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTopStatement(JhpParser.TopStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -72,18 +84,6 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitNamespaceDeclaration(JhpParser.NamespaceDeclarationContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterNamespaceStatement(JhpParser.NamespaceStatementContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitNamespaceStatement(JhpParser.NamespaceStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

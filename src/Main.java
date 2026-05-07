@@ -46,7 +46,8 @@ public class Main {
             public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
                                     int line, int charPositionInLine,
                                     String msg, RecognitionException e) {
-                errors.add("line " + line + ":" + charPositionInLine + " " + msg);
+                        System.err.println("语法错误 at line " + line + ":" + charPositionInLine + " - " + msg);
+                        System.err.println("Offending symbol: " + offendingSymbol);
             }
         });
 

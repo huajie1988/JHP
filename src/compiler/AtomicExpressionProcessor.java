@@ -2,6 +2,7 @@ package compiler;
 
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -103,14 +104,23 @@ public class AtomicExpressionProcessor {
                 break;
             }
         }
-        // 判断键值对
-        String text = ctx.getText();
-        boolean isMap = text.contains("=>");
-        if (isMap) return generateMapInit(itemList, indent);
-        else return generateListInit(itemList, indent);
+ 
+        // 判断键值对：检查 arrayItem 是否显式包含 => （DoubleArrow token）
+        boolean isMap = false;
+        for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
+            if (item.DoubleArrow() != null) {
+                isMap = true;
+                break;
+            }
+        }
+        if (isMap) {
+            return generateMapInit(itemList, indent);
+        } else {
+            return generateListInit(itemList, indent);
+        }
     }
 
-    private String generateListInit(JhpParser.ArrayItemListContext itemList, int indent) {
+    public String generateListInit(JhpParser.ArrayItemListContext itemList, int indent) {
         if (itemList == null || itemList.arrayItem().isEmpty()) return "new ArrayList<>()";
         List<String> items = new ArrayList<>();
         for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
@@ -120,7 +130,7 @@ public class AtomicExpressionProcessor {
         return "new ArrayList<>(Arrays.asList(" + String.join(", ", items) + "))";
     }
 
-    private String generateMapInit(JhpParser.ArrayItemListContext itemList, int indent) {
+    public String generateMapInit(JhpParser.ArrayItemListContext itemList, int indent) {
         if (itemList == null || itemList.arrayItem().isEmpty()) return "new HashMap<>()";
         StringBuilder sb = new StringBuilder("new HashMap<>() {{\n");
         for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
@@ -242,6 +252,109 @@ public class AtomicExpressionProcessor {
             args = generateArguments(ctx.actualArguments(), indent);
         }
         return "." + methodName + "(" + args + ")";
+    }
+
+    private String generateConstant(JhpParser.ConstantContext c) {
+        if (c == null) {
+            System.err.println("Internal error: null constant context");
+            return "null /* ERROR */";
+        }
+        if (c.Null() != null) return "null";
+        if (c.literalConstant() != null) {
+            // literalConstant 包括 Real, BooleanConstant, numericConstant, stringConstant
+            // 直接返回文本（例如数字、true/false、Label）
+            return c.literalConstant().getText();
+        }
+        if (c.magicConstant() != null) {
+            System.err.println("Error: magic constants are not supported as constant values.");
+            return "/* ERROR */ null";
+        }
+        if (c.classConstant() != null) {
+            System.err.println("Error: class constants are not supported as constant values.");
+            return "/* ERROR */ null";
+        }
+        if (c.qualifiedNamespaceName() != null) {
+            System.err.println("Error: qualified namespace names are not supported as constant values.");
+            return "/* ERROR */ null";
+        }
+        return c.getText(); // fallback
+    }
+
+    public String generateConstantInitializer(JhpParser.ConstantInitializerContext ctx, int indent) {
+        // 1. constant 或 string
+        if (!ctx.constant().isEmpty()) {
+            JhpParser.ConstantContext c = ctx.constant(0);
+            if (c == null) {
+                System.err.println("Error: constant context is null in: " + ctx.getText());
+                return "null /* ERROR */";
+            }
+            return generateConstant(c);
+        }
+        if (!ctx.string().isEmpty()) {
+            return ctx.string(0).getText();   // 原样返回字符串字面量
+        }
+
+        // 2. 数组字面量
+        if (ctx.OpenSquareBracket() != null || ctx.Array() != null) {
+            JhpParser.ArrayItemListContext itemList = null;
+            for (ParseTree child : ctx.children) {
+                if (child instanceof JhpParser.ArrayItemListContext) {
+                    itemList = (JhpParser.ArrayItemListContext) child;
+                    break;
+                }
+            }
+            if (itemList != null) {
+                boolean isMap = false;
+                // 检查是否存在任何 arrayItem 包含 =>（DoubleArrow token）
+                for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
+                    if (item.DoubleArrow() != null) {
+                        isMap = true;
+                        break;
+                    }
+                }
+                if (isMap) {
+                    return generateMapInit(itemList, indent);
+                } else {
+                    return generateListInit(itemList, indent);
+                }
+            }
+            return "new Object[]{}";
+        }
+
+        // 3. 一元正负号
+        if (ctx.getChild(0).getText().equals("+") || ctx.getChild(0).getText().equals("-")) {
+            String sign = ctx.getChild(0).getText();
+            JhpParser.ConstantInitializerContext inner = (JhpParser.ConstantInitializerContext) ctx.getChild(1);
+            if (inner == null) {
+                System.err.println("Error: inner constant initializer is null in: " + ctx.getText());
+                return "null /* ERROR */";
+            }
+            return sign + generateConstantInitializer(inner, indent);
+        }
+
+        // 4. 字符串连接 (string | constant) ('.' (string | constant))*
+        //    直接遍历子节点拼接，如果出现 constant 则调用 generateConstant，并检查 null
+        StringBuilder sb = new StringBuilder();
+        for (ParseTree child : ctx.children) {
+            if (child instanceof TerminalNode && child.getText().equals(".")) {
+                sb.append(" + ");
+            } else if (child instanceof JhpParser.StringContext) {
+                sb.append(((JhpParser.StringContext) child).getText());
+            } else if (child instanceof JhpParser.ConstantContext) {
+                JhpParser.ConstantContext cc = (JhpParser.ConstantContext) child;
+                if (cc == null) {  // 防御
+                    System.err.println("Error: null constant in concat: " + ctx.getText());
+                    sb.append("null /* ERROR */");
+                } else {
+                    sb.append(generateConstant(cc));
+                }
+            }
+        }
+        if (sb.length() > 0) return sb.toString();
+
+        // 5. 其他未知情况
+        System.err.println("Unknown constant initializer: " + ctx.getText());
+        return "null /* ERROR */";
     }
 
 }

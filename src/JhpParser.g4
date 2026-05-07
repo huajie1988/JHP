@@ -31,7 +31,7 @@ options {
 
 // 入口：纯 PHP 文件（支持 Shebang 和可选的 PHP 开始标记）
 phpFile
-    : Shebang? importStatement* topStatement* EOF
+    : Shebang? namespaceDeclaration? importStatement* topStatement* EOF
     ;
 
 // 原 phpBlock：可以保留作为内部块，但入口已改为 phpFile
@@ -40,10 +40,11 @@ phpBlock
     ;
 
 importStatement
-    : Import      qualifiedNamespaceName SemiColon   // 明确推荐：import java.util.List;
-    | Include     qualifiedNamespaceName SemiColon   // 兼容：include java.util.List;
-    | Require     qualifiedNamespaceName SemiColon   // 兼容：require java.util.List;
-    | Use         qualifiedNamespaceName SemiColon   // 兼容：use java.util.List;
+    : (Import | Include | Require | Use) importPath SemiColon
+    ;
+// namespaceNameList会包含一个更复杂的as语法，而java又不支持类重新取别名
+importPath
+    : identifier ('\\' identifier)* ('\\' Asterisk)?
     ;
 
 topStatement
@@ -55,17 +56,14 @@ topStatement
     ;
 
 namespaceDeclaration
-    : Namespace (
-        namespaceNameList? OpenCurlyBracket namespaceStatement* CloseCurlyBracket
-        | namespaceNameList SemiColon
-    )
+    : Namespace namespaceNameList SemiColon
     ;
 
-namespaceStatement
-    : statement
-    | functionDeclaration
-    | classDeclaration
-    ;
+// namespaceStatement
+//    : statement
+//    | functionDeclaration
+//    | classDeclaration
+//    ;
 
 functionDeclaration
     : attributes? Function_ identifier typeParameterListInBrackets? '(' formalParameterList ')' 
@@ -301,7 +299,7 @@ staticVariableStatement
 
 classStatement
     : attributes? (
-        propertyModifiers typeHint? variableInitializer (',' variableInitializer)* SemiColon
+        propertyModifiers typeHint variableInitializer (',' variableInitializer)* SemiColon
         | memberModifiers? (
             Const typeHint? identifierInitializer (',' identifierInitializer)* SemiColon
             | Function_ identifier typeParameterListInBrackets? '(' formalParameterList ')' (
@@ -350,7 +348,7 @@ methodBody
 
 propertyModifiers
     : memberModifiers
-    | Var
+    // | Var
     ;
 
 memberModifiers
@@ -529,7 +527,8 @@ indirectTypeRef
     ;
 
 qualifiedNamespaceName
-    : Namespace? '\\'? namespaceNameList
+    // Namespace?
+    : '\\'? namespaceNameList
     ;
 
 namespaceNameList
@@ -730,8 +729,8 @@ identifier
     // | Goto
     | If
     | Implements
-    | Import
-    | Include
+    // | Import
+    // | Include
     // | IncludeOnce
     | InstanceOf
     | InsteadOf
@@ -746,8 +745,8 @@ identifier
     | LogicalAnd
     | LogicalOr
     | LogicalXor
-    | Namespace
-    | New
+    // | Namespace
+    // | New
     | Null
     | ObjectType
     | Parent_
@@ -757,7 +756,7 @@ identifier
     | Protected
     | Public
     | Readonly
-    | Require
+    // | Require
     // | RequireOnce
     | Resource
     | Return
@@ -771,7 +770,7 @@ identifier
     | UintCast
     | UnicodeCast
     // | Unset
-    | Use
+    // | Use
     | Var
     | While
     // | Yield
@@ -833,6 +832,7 @@ primitiveType
     | IntType
     | Int64Type
     | DoubleType
+    | FloatCast
     | StringType
     | Resource
     | ObjectType

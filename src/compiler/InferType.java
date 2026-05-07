@@ -5,12 +5,14 @@ import jhp.parser.*;
 import java.util.List;
 
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class InferType {
     private VariableProcessor varProc;
     public InferType(VariableProcessor varProc) {
         this.varProc = varProc;
     }
+
     public String inferTypeFromExpression(JhpParser.ExpressionContext ctx) {
         if (ctx instanceof JhpParser.ScalarExpressionContext) {
             JhpParser.ScalarExpressionContext scalar = (JhpParser.ScalarExpressionContext) ctx;
@@ -209,4 +211,114 @@ public class InferType {
         }
         return "Object";
     }
+
+    // 标量常量的类型推断
+    private String inferTypeFromLiteralConstant(JhpParser.LiteralConstantContext literal) {
+        String text = literal.getText();
+        if (text.matches("-?\\d+")) return "Integer";
+        if (text.matches("-?\\d+\\.\\d+")) return "Double";
+        if (text.equals("true") || text.equals("false")) return "Boolean";
+        if (literal.stringConstant() != null) return "String";
+        return "Object";
+    }
+    
+    // 从 ArrayItemList 推断列表元素类型（复用现有 inferTypeFromExpression）
+    private String inferListTypeFromItemList(JhpParser.ArrayItemListContext itemList) {
+        if (itemList == null || itemList.arrayItem().isEmpty()) return "ArrayList<Object>";
+        String elementType = null;
+        for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
+            if (item.expression(0) != null) {
+                String t = inferTypeFromExpression(item.expression(0));
+                if (!t.equals("Object")) {
+                    elementType = t;
+                    break;
+                }
+            }
+        }
+        return "ArrayList<" + (elementType != null ? elementType : "Object") + ">";
+    }
+
+    // 从 ArrayItemList 推断 Map 类型（复用现有逻辑）
+    private String inferMapTypeFromItemList(JhpParser.ArrayItemListContext itemList) {
+        if (itemList == null || itemList.arrayItem().isEmpty()) return "HashMap<Object, Object>";
+        String keyType = null;
+        String valueType = null;
+        for (JhpParser.ArrayItemContext item : itemList.arrayItem()) {
+            if (item.expression().size() >= 2) {
+                String k = inferTypeFromExpression(item.expression(0));
+                String v = inferTypeFromExpression(item.expression(1));
+                if (keyType == null) {
+                    keyType = k;
+                } else if (!keyType.equals(k)) {
+                    keyType = "Object";
+                }
+                if (valueType == null) {
+                    valueType = v;
+                } else if (!valueType.equals(v)) {
+                    valueType = "Object";
+                }
+            }
+        }
+        if (keyType == null || keyType.equals("Object")) keyType = "String";
+        if (valueType == null) valueType = "Object";
+        return "HashMap<" + keyType + ", " + valueType + ">";
+    }
+
+    /**
+     * 从常量初始化器推断类型，最大化复用 inferTypeFromExpression。
+     */
+    public String inferTypeFromConstantInitializer(JhpParser.ConstantInitializerContext ctx) {
+        // 1. literalConstant（数字、布尔、字符串常量）→ 复用标量表达式推断
+        if (!ctx.constant().isEmpty() && ctx.constant(0) != null) {
+            JhpParser.ConstantContext c = ctx.constant(0);
+            if (c.Null() != null) return "Object";
+            if (c.literalConstant() != null) {
+                // 直接复用标量推断：literalConstant 的文本与 ScalarExpression 的文本一致
+                // 只要文本格式是数字、true/false 或字符串，inferTypeFromExpression 就能正确处理
+                return inferTypeFromLiteralConstant(c.literalConstant());
+            }
+            return "Object";
+        }
+
+        // 2. 字符串字面量
+        if (!ctx.string().isEmpty()) {
+            return "String";
+        }
+
+        // 3. 数组字面量 → 复用数组推断逻辑
+        if (ctx.OpenSquareBracket() != null || ctx.Array() != null) {
+            JhpParser.ArrayItemListContext itemList = null;
+            for (ParseTree child : ctx.children) {
+                if (child instanceof JhpParser.ArrayItemListContext) {
+                    itemList = (JhpParser.ArrayItemListContext) child;
+                    break;
+                }
+            }
+            if (itemList != null) {
+                if (itemList.getText().contains("=>")) {
+                    return inferMapTypeFromItemList(itemList);
+                } else {
+                    return inferListTypeFromItemList(itemList);
+                }
+            }
+            return "ArrayList<Object>";
+        }
+
+        // 4. 一元正负 → 递归
+        if (ctx.getChild(0).getText().equals("+") || ctx.getChild(0).getText().equals("-")) {
+            return inferTypeFromConstantInitializer(
+                (JhpParser.ConstantInitializerContext) ctx.getChild(1)
+            );
+        }
+
+        // 5. 字符串连接 → String
+        for (ParseTree child : ctx.children) {
+            if (child instanceof TerminalNode && child.getText().equals(".")) {
+                return "String";
+            }
+        }
+
+        return "Object";
+    }
+
 }

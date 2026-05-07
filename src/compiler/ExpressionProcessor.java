@@ -134,6 +134,10 @@ public class ExpressionProcessor {
         return inferType.inferTypeFromExpression(ctx);
     }
 
+    public String inferTypeFromConstantInitializer(JhpParser.ConstantInitializerContext ctx) {
+        return inferType.inferTypeFromConstantInitializer(ctx);
+    }
+
     public String getVariableTypes(String varName) {
         return varProc.getVariableType(varName);
     }
@@ -152,5 +156,17 @@ public class ExpressionProcessor {
             sb.append(generateExpression(exprs.get(i), indent));
         }
         return sb.toString();
+    }
+
+    public String generateListInit(JhpParser.ArrayItemListContext itemList, int indent) {
+        return atomic.generateListInit(itemList, indent);
+    }
+
+    public String generateMapInit(JhpParser.ArrayItemListContext itemList, int indent) {
+        return atomic.generateMapInit(itemList, indent);
+    }
+
+    public String generateConstantInitializer(JhpParser.ConstantInitializerContext ctx, int indent) {
+        return atomic.generateConstantInitializer(ctx, indent);
     }
 }

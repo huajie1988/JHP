@@ -2,6 +2,8 @@ package compiler;
 
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.io.PrintWriter;
 
@@ -9,6 +11,7 @@ public final class JhpUtils {
 
     // 将 PHP 类型映射为 Java 类型
     public static String mapJhpTypeToJavaType(String phpType) { 
+        System.err.println("DEBUG: mapping PHP type '" + phpType + "' to Java type");
         switch (phpType) {
             case "int":
             case "integer":
@@ -146,12 +149,28 @@ public final class JhpUtils {
     // 辅助方法：将 PHP typeHint 转为 Java 类型字符串
     public static String mapTypeHint(JhpParser.TypeHintContext typeHint) {
         // System.err.println("DEBUG: mapping type hint: " +typeHint.qualifiedStaticTypeRef().getText());
+        if (typeHint == null) return "Object";
+        // 1. 基础类型如 int, bool, string 等
         if (typeHint.primitiveType() != null) {
-            return JhpUtils.mapJhpTypeToJavaType(typeHint.primitiveType().getText());
-        } else if (typeHint.qualifiedStaticTypeRef() != null) {
-            return typeHint.qualifiedStaticTypeRef().getText();
-        } else if (typeHint.Callable() != null) {
-            return "Object"; // 简化处理
+            return mapJhpTypeToJavaType(typeHint.primitiveType().getText());
+        }
+        // 2. 类/接口 + 可选的泛型
+        if (typeHint.qualifiedStaticTypeRef() != null) {
+            JhpParser.QualifiedStaticTypeRefContext qsr = typeHint.qualifiedStaticTypeRef();
+            String text = qsr.getText();
+            String mapped = mapJhpTypeToJavaType(text);
+            if (!mapped.equals(text)) {
+                return mapped; // 基本类型
+            }
+            return qualifiedStaticTypeRefToJava(qsr);
+        }
+        // 3. callable 简化为 Object
+        if (typeHint.Callable() != null) {
+            return "Object";
+        }
+        // 4. 联合类型（如 int|string）暂按 Object 处理
+        if (typeHint.typeHint() != null && !typeHint.typeHint().isEmpty()) {
+            return "Object";
         }
         return "Object";
     }
@@ -175,4 +194,79 @@ public final class JhpUtils {
         }
         return fcn.getText();
     }
+
+    /**
+     * 将 qualifiedStaticTypeRef 转换为 Java 类名，并处理泛型参数
+     */
+    public static String qualifiedStaticTypeRefToJava(JhpParser.QualifiedStaticTypeRefContext ctx) {
+        if (ctx.Static() != null) return "static";
+        StringBuilder sb = new StringBuilder();
+        sb.append(phpPackageToJavaPackage(ctx.qualifiedNamespaceName().getText()));
+        if (ctx.genericDynamicArgs() != null) {
+            JhpParser.GenericDynamicArgsContext ga = ctx.genericDynamicArgs();
+            if (ga.typeRef() != null && !ga.typeRef().isEmpty()) {
+                sb.append("<").append(mapTypeRefListToJava(ga.typeRef())).append(">");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将 typeRef 转换为 Java 类型字符串，支持嵌套泛型
+     */
+    public static String mapTypeRefToJava(JhpParser.TypeRefContext typeRef) {
+        if (typeRef == null) return "Object";
+        // 基本类型
+        if (typeRef.primitiveType() != null) {
+            return mapJhpTypeToJavaType(typeRef.primitiveType().getText());
+        }
+        // 类名或命名空间路径（可能带有泛型）
+        if (typeRef.qualifiedNamespaceName() != null) {
+            String baseName = phpPackageToJavaPackage(typeRef.qualifiedNamespaceName().getText());
+            // 尝试基本类型二次判断（如 int）
+            String mapped = mapJhpTypeToJavaType(baseName);
+            if (!mapped.equals(baseName)) {
+                baseName = mapped;
+            }
+            // 处理泛型参数
+            if (typeRef.genericDynamicArgs() != null) {
+                JhpParser.GenericDynamicArgsContext ga = typeRef.genericDynamicArgs();
+                baseName += "<" + mapTypeRefListToJava(ga.typeRef()) + ">";
+            }
+            return baseName;
+        }
+        // static, anonymous, indirect 暂返回 Object
+        if (typeRef.Static() != null) return "static";
+        if (typeRef.anonymousClass() != null) return "Object";
+        if (typeRef.indirectTypeRef() != null) return "Object";
+        return "Object";
+    }
+
+    /**
+     * 将 typeRef 列表转换为逗号分隔的 Java 类型字符串
+     */
+    public static String mapTypeRefListToJava(List<JhpParser.TypeRefContext> typeRefs) {
+        if (typeRefs == null || typeRefs.isEmpty()) return "";
+        List<String> parts = new ArrayList<>();
+        for (JhpParser.TypeRefContext tr : typeRefs) {
+            parts.add(mapTypeRefToJava(tr));
+        }
+        return String.join(", ", parts);
+    }
+
+    public static String phpPackageToJavaPackage(String name) {
+        name = name.replaceAll("^\\\\+", "");
+        return name.replace("\\", ".");
+    }
+
+    public static String extractAccessModifier(JhpParser.MemberModifiersContext modifiersCtx) {
+        if (modifiersCtx == null || modifiersCtx.memberModifier() == null) return "public ";
+        for (JhpParser.MemberModifierContext mod : modifiersCtx.memberModifier()) {
+            String text = mod.getText().toLowerCase();
+            if (text.equals("public") || text.equals("private") || text.equals("protected"))
+                return text + " ";
+        }
+        return "public ";
+    }
+
 }

@@ -15,7 +15,8 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     private int needStatic = 0; // 1=需要static，0=不需要static
     private final String mainClassName;          // 顶层 public class 的名字
     private final int mode;                      // 编译模式 1~3
-    private boolean hasMain = true;              // 是否生成 main 方法（模式1需要 main）
+    private boolean hasMain = true;              // 是否生成 main 方法（模式1/2需要 main）
+    private boolean insideClass = false;   // 是否在类内部
 
     // 变量处理逻辑现在在这个独立的对象中
     private final VariableProcessor varProc;
@@ -46,10 +47,23 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
     @Override
     public Void visitPhpFile(JhpParser.PhpFileContext ctx) {
+        // 首先输出命名空间（如果有）
+        if (ctx.namespaceDeclaration() != null) {
+            visit(ctx.namespaceDeclaration()); // 生成 package xxx;
+        }
+
+        // 输出用户自定义的 import
+        for (JhpParser.ImportStatementContext imp : ctx.importStatement()) {
+            visit(imp);
+        }
+
         if(mode == 3) {
              clazzProcess(ctx);
         }else if(mode == 1 || mode == 2) {
+            
+            // 输出默认的 import
             out.println("import java.util.*;");
+            
             out.println("public class " + mainClassName + " {");
             indentLevel++;
 
@@ -427,6 +441,156 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     }
 
     @Override
+    public Void visitClassDeclaration(JhpParser.ClassDeclarationContext ctx) {
+        // 提取类名和类型
+        String className = ctx.identifier().getText();
+        boolean isInterface = ctx.Interface() != null;
+        // 暂时忽略接口细节，按类处理
+        // TODO 后续添加接口支持
+        if (isInterface) {
+            // 暂不支持，生成注释
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("// Interface " + className + " is not supported yet");
+            return null;
+        }
+        // 修饰符：abstract, final 等
+        String modifiers = "";
+        if (ctx.modifier() != null) {
+            modifiers += ctx.modifier().getText() + " ";
+        }
+        // extends
+        String extendsClause = "";
+        if (ctx.Extends() != null && ctx.qualifiedStaticTypeRef() != null) {
+            extendsClause = " extends " + JhpUtils.phpPackageToJavaPackage(ctx.qualifiedStaticTypeRef().getText());
+        }
+        // implements
+        String implementsClause = "";
+        if (ctx.Implements() != null && ctx.interfaceList() != null) {
+            List<String> ifaces = new ArrayList<>();
+            for (JhpParser.QualifiedStaticTypeRefContext iface : ctx.interfaceList().qualifiedStaticTypeRef()) {
+                ifaces.add(JhpUtils.phpPackageToJavaPackage(iface.getText()));
+            }
+            implementsClause = " implements " + String.join(", ", ifaces);
+        }
+
+        // 输出类头
+        JhpUtils.printIndent(out, indentLevel);
+        out.println(modifiers + "class " + className + extendsClause + implementsClause + " {");
+        indentLevel++;
+
+        insideClass = true;
+
+        // 翻译类成员
+        for (JhpParser.ClassStatementContext stmt : ctx.classStatement()) {
+            translateClassStatement(stmt);
+        }
+
+        insideClass = false;
+        indentLevel--;
+        JhpUtils.printIndent(out, indentLevel);
+        out.println("}");
+        return null;
+    }
+
+    private void translateClassStatement(JhpParser.ClassStatementContext stmt) {
+        if (stmt.Use() != null) {
+            // trait use，暂不支持
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("// TODO: trait use");
+            return;
+        }
+        // 属性声明
+        if (stmt.propertyModifiers() != null) {
+            // 文件去除了var修饰，因为PHP7后var默认就是public
+            String accessModifier = "public "; // PHP 默认 public
+            JhpParser.MemberModifiersContext modifiersCtx = stmt.propertyModifiers().memberModifiers();
+            if (modifiersCtx != null) {
+                accessModifier = JhpUtils.extractAccessModifier(modifiersCtx);
+            }
+            String type = "Object"; // 默认类型
+            if (stmt.typeHint() != null) {
+                type = JhpUtils.mapTypeHint(stmt.typeHint());
+            }
+            // 处理多个 variableInitializer（用逗号分隔）
+            for (JhpParser.VariableInitializerContext varInit : stmt.variableInitializer()) {
+                String varName = varInit.VarName().getText().substring(1); // 去掉 $
+                String init = "";
+                if (varInit.Eq() != null && varInit.constantInitializer() != null) {
+                    init = " = " + exprProc.generateConstantInitializer(varInit.constantInitializer(), indentLevel);
+                    // constantInitializer 内部可能是一个 expression，也可能嵌套 array 等，但 generateExpression 可处理
+                }
+                JhpUtils.printIndent(out, indentLevel);
+                out.println(accessModifier + type + " " + varName + init + ";");
+            }
+            return;
+        }
+        // 常量声明
+        if (stmt.Const() != null) {
+            //
+            String type = null;
+           
+            if (stmt.typeHint() != null) {
+                type = JhpUtils.mapTypeHint(stmt.typeHint());
+            }
+
+            List<JhpParser.IdentifierInitializerContext> idInits = stmt.identifierInitializer();
+
+            if (type == null && !idInits.isEmpty()) {
+                // 无显式类型，遍历初始化器，只保留最后一条有效推断
+                String inferredType = "Object";
+                for (JhpParser.IdentifierInitializerContext idInit : idInits) {
+                    if (idInit.constantInitializer() != null) {
+                        String t = exprProc.inferTypeFromConstantInitializer(idInit.constantInitializer());
+                        if (t != null) {
+                            inferredType = t;
+                        }
+                    }
+                }
+                type = inferredType;
+            } else if (type == null) {
+                type = "Object";
+            }
+
+
+            for (JhpParser.IdentifierInitializerContext idInit : idInits) {
+                String constName = idInit.identifier().getText();
+                String init = "";
+                if (idInit.constantInitializer() != null) {
+                    String initCode = exprProc.generateConstantInitializer(idInit.constantInitializer(), indentLevel);
+                    init = " = " + initCode;
+                }
+                JhpUtils.printIndent(out, indentLevel);
+                out.println("public static final " + type + " " + constName + init + ";");
+            }
+            return;
+        }
+        // 方法声明（先跳过，留空）
+        if (stmt.Function_() != null) {
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("// TODO: method declaration");
+        }
+    }
+
+    @Override
+    public Void visitNamespaceDeclaration(JhpParser.NamespaceDeclarationContext ctx) {
+        String fullName = ctx.namespaceNameList().getText(); // 例如 "App\Model"
+        String javaPackage = fullName.replace("\\", ".");
+        JhpUtils.printIndent(out, indentLevel);  // 应在文件顶部，缩进为 0
+        out.println("package " + javaPackage + ";");
+        out.println(); // 空行分隔
+        return null;
+    }
+
+    @Override
+    public Void visitImportStatement(JhpParser.ImportStatementContext ctx) {
+        JhpParser.ImportPathContext pathCtx = ctx.importPath();
+        System.err.println("DEBUG: Visiting import statement with path: " + pathCtx.getText());
+        String path = pathCtx.getText().replace("\\", ".");
+        out.println("import " + path + ";");
+        return null;
+    }
+
+    @Override
     public Void visitContinueStatement(JhpParser.ContinueStatementContext ctx) {
         indent();
         out.println("continue;");
@@ -453,6 +617,8 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         JhpParser.ClassDeclarationContext classCtx = null;
         for (ParseTree child : ctx.children) {
             if (child instanceof JhpParser.TopStatementContext topCtx) {
+                // System.err.println("DEBUG: Visiting top-level statement with text: " + topCtx.getText());
+                // System.err.println("DEBUG: Contains namespace declaration? " + (topCtx.namespaceDeclaration() != null));
                 if (topCtx.classDeclaration() != null) {
                     if (classCtx != null) {
                         System.err.println("Error: mode 3 expects exactly one class in the file");
@@ -467,19 +633,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             return;
         }
 
-        // 生成 Java class，类名取自 PHP 类名
-        String phpClassName = classCtx.identifier().getText();
-        // TODO: 处理 extends, implements 等，目前先简单输出
-        out.println("public class " + phpClassName + " {");
-        indentLevel++;
-
-        // 输出类成员（classStatement），这里暂时略，以后实现 classStatement 访问器时填充
-        // 现在直接 visit classDeclaration？但需要完整实现 classDeclaration 翻译。
-        // 为保持可编译，暂时输出一个空类体
-        System.err.println("Warning: class body not yet implemented");
-
-        indentLevel--;
-        out.println("}");
+        visit(classCtx);
     }
 
 }

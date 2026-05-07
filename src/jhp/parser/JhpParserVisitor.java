@@ -29,6 +29,12 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitImportStatement(JhpParser.ImportStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link JhpParser#importPath}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImportPath(JhpParser.ImportPathContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link JhpParser#topStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -40,12 +46,6 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitNamespaceDeclaration(JhpParser.NamespaceDeclarationContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link JhpParser#namespaceStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNamespaceStatement(JhpParser.NamespaceStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link JhpParser#functionDeclaration}.
 	 * @param ctx the parse tree

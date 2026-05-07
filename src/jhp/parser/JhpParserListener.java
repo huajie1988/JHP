@@ -38,6 +38,16 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitImportStatement(JhpParser.ImportStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link JhpParser#importPath}.
+	 * @param ctx the parse tree
+	 */
+	void enterImportPath(JhpParser.ImportPathContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JhpParser#importPath}.
+	 * @param ctx the parse tree
+	 */
+	void exitImportPath(JhpParser.ImportPathContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link JhpParser#topStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -57,16 +67,6 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitNamespaceDeclaration(JhpParser.NamespaceDeclarationContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link JhpParser#namespaceStatement}.
-	 * @param ctx the parse tree
-	 */
-	void enterNamespaceStatement(JhpParser.NamespaceStatementContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link JhpParser#namespaceStatement}.
-	 * @param ctx the parse tree
-	 */
-	void exitNamespaceStatement(JhpParser.NamespaceStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link JhpParser#functionDeclaration}.
 	 * @param ctx the parse tree
