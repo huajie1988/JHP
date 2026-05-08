@@ -10,6 +10,11 @@ import java.util.List;
 public class AtomicExpressionProcessor {
     private final PrintWriter out;
     private final ExpressionProcessor exprProc;
+    private boolean staticContext = false;
+
+    public void setStaticContext(boolean v) {
+        this.staticContext = v;
+    }
 
     public AtomicExpressionProcessor(ExpressionProcessor exprProc, PrintWriter out) {
         this.exprProc = exprProc;
@@ -72,6 +77,11 @@ public class AtomicExpressionProcessor {
             } else {
                 // 普通变量（如 $var）
                 String varName = getBaseVarName(chain);
+                // 在静态方法中禁止使用 $this->
+                if ("this".equals(varName) && !chain.memberAccess().isEmpty() && staticContext) {
+                    exprProc.fatalError("Error: Cannot use $this in static context. Translation aborted.");
+                    return ""; // 不会执行到这里
+                }
                 List<String> subscripts = extractSubscripts(chain);
                 result = varName;
                 if (!subscripts.isEmpty()) {
@@ -366,15 +376,15 @@ public class AtomicExpressionProcessor {
             return c.literalConstant().getText();
         }
         if (c.magicConstant() != null) {
-            System.err.println("Error: magic constants are not supported as constant values.");
+            exprProc.fatalError("Error: magic constants are not supported as constant values.");
             return "/* ERROR */ null";
         }
         if (c.classConstant() != null) {
-            System.err.println("Error: class constants are not supported as constant values.");
+            exprProc.fatalError("Error: class constants are not supported as constant values.");
             return "/* ERROR */ null";
         }
         if (c.qualifiedNamespaceName() != null) {
-            System.err.println("Error: qualified namespace names are not supported as constant values.");
+            exprProc.fatalError("Error: qualified namespace names are not supported as constant values.");
             return "/* ERROR */ null";
         }
         return c.getText(); // fallback
@@ -385,7 +395,7 @@ public class AtomicExpressionProcessor {
         if (!ctx.constant().isEmpty()) {
             JhpParser.ConstantContext c = ctx.constant(0);
             if (c == null) {
-                System.err.println("Error: constant context is null in: " + ctx.getText());
+                exprProc.fatalError("Error: constant context is null in: " + ctx.getText());
                 return "null /* ERROR */";
             }
             return generateConstant(c);
@@ -426,7 +436,7 @@ public class AtomicExpressionProcessor {
             String sign = ctx.getChild(0).getText();
             JhpParser.ConstantInitializerContext inner = (JhpParser.ConstantInitializerContext) ctx.getChild(1);
             if (inner == null) {
-                System.err.println("Error: inner constant initializer is null in: " + ctx.getText());
+                exprProc.fatalError("Error: inner constant initializer is null in: " + ctx.getText());
                 return "null /* ERROR */";
             }
             return sign + generateConstantInitializer(inner, indent);
@@ -443,7 +453,7 @@ public class AtomicExpressionProcessor {
             } else if (child instanceof JhpParser.ConstantContext) {
                 JhpParser.ConstantContext cc = (JhpParser.ConstantContext) child;
                 if (cc == null) {  // 防御
-                    System.err.println("Error: null constant in concat: " + ctx.getText());
+                    exprProc.fatalError("Error: null constant in concat: " + ctx.getText());
                     sb.append("null /* ERROR */");
                 } else {
                     sb.append(generateConstant(cc));
@@ -453,7 +463,7 @@ public class AtomicExpressionProcessor {
         if (sb.length() > 0) return sb.toString();
 
         // 5. 其他未知情况
-        System.err.println("Unknown constant initializer: " + ctx.getText());
+        exprProc.fatalError("Unknown constant initializer: " + ctx.getText());
         return "null /* ERROR */";
     }
 

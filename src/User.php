@@ -31,6 +31,7 @@ public abstract class User extends People implements Person, Serializable {
     const string CONCAT = "Hello" . "World";
     
     public function __construct(int $id, string $name, bool $active) {
+        //PHP中super不是关键字，可以直接使用不处理也行
         super($id, $name, $active);
         //parent::__construct($id, $name, $active);  // 调用父类构造器（如果有）
         parent::init();  // 调用父类初始化方法（如果有）
@@ -47,6 +48,7 @@ public abstract class User extends People implements Person, Serializable {
     public abstract function isActive(): bool ;
 
     public static function incrementInstanceCount(): int {
+        // $this->score = 0.0; // 错误示例：静态方法中不能使用 $this 关键字
         User::$instanceCount++;
         self::$instanceCount += 2;
         return self::$instanceCount;

@@ -181,4 +181,12 @@ public class ExpressionProcessor {
     public String getCurrentClassName() {
         return varProc.getCurrentClassName();
     }
+
+    public void setStaticContext(boolean v) {
+        atomic.setStaticContext(v);
+    }
+
+    public void fatalError(String message) throws JhpCompilationException {
+        throw new JhpCompilationException(message);
+    }
 }

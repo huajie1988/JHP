@@ -672,7 +672,19 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                     out.println("super(" + superArgs + ");");
                 }
 
+                // 如果是静态方法，设置静态上下文标志
+                boolean isStaticMethod = modifiers.contains("static ");
+                if (isStaticMethod) {
+                    exprProc.setStaticContext(true);
+                }
+
                 visit(body.blockStatement()); // 递归翻译方法体
+
+                // 还原静态上下文标志
+                if (isStaticMethod) {
+                    exprProc.setStaticContext(false);
+                }
+
                 indentLevel--;
                 // JhpUtils.printIndent(out, indentLevel);
                 

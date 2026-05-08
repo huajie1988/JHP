@@ -1,4 +1,5 @@
 import jhp.parser.*;
+import compiler.JhpCompilationException;
 import compiler.JhpVisitor;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -66,6 +67,10 @@ public class Main {
         try (PrintWriter out = new PrintWriter(new FileWriter(javaFile))) {
             JhpVisitor visitor = new JhpVisitor(out, mode, className);
             visitor.visit(tree);
+        } catch (JhpCompilationException e) {
+            System.err.println(e.getMessage());
+            new File(javaFile).delete();
+            System.exit(1);
         }
 
         System.out.println("Generated " + javaFile);
