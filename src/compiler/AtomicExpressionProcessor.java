@@ -21,47 +21,92 @@ public class AtomicExpressionProcessor {
         return ctx.getText();
     }        
     public String generateChain(JhpParser.ChainContext chain, int indent) {
-        // JhpParser.ChainContext chain = ctx.chain();
-        // 如果是函数调用，生成函数调用代码
-        // （或后续有成员访问，但保持基本函数调用）
         if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
             return generateFunctionCall(chain, indent);
         }
-        String varName = getBaseVarName(chain);
-        List<String> subscripts = extractSubscripts(chain);
-        String result = varName;
 
-        // 处理下标访问（如 $arr[0]）
-        if (!subscripts.isEmpty()) {
-            String varType = exprProc.getVariableTypes(varName);
-            for (String index : subscripts) {
-                if (JhpUtils.isListType(varType)) {
-                    result = result + ".get(" + index + ")";
-                    varType = JhpUtils.extractElementType(varType);
-                } else if (JhpUtils.isMapType(varType)) {
-                    result = result + ".get(" + index + ")";
-                    varType = JhpUtils.extractElementType(varType);
+        System.err.println("DEBUG: Processing chain: " + chain.chainOrigin().chainBase().getText());
+        // 处理 chainBase
+        if (chain.chainOrigin().chainBase() != null) {
+            JhpParser.ChainBaseContext base = chain.chainOrigin().chainBase();
+            String result;
+
+            if (base.qualifiedStaticTypeRef() != null) {
+                String className = JhpUtils.qualifiedStaticTypeRefToJava(base.qualifiedStaticTypeRef());
+                // 将 self/static 翻译的 "this" 替换为当前类名
+                if ("this".equals(className)) {
+                    String curClass = exprProc.getCurrentClassName();
+                    if (curClass != null && !curClass.isEmpty()) {
+                        className = curClass;
+                    }
+                }
+                System.err.println("DEBUG: Processing qualified static type ref: " + base.qualifiedStaticTypeRef().getText() + " -> " + className);
+                List<JhpParser.KeyedVariableContext> keyedVars = base.keyedVariable();
+                if (!keyedVars.isEmpty()) {
+                    JhpParser.KeyedVariableContext kv = keyedVars.get(0);
+                    String propName;
+                    if (kv.VarName() != null) {
+                        propName = kv.VarName().getText().substring(1);
+                    } else if (kv.Dollar() != null && !kv.Dollar().isEmpty()) {
+                        propName = "(" + exprProc.generateExpression(kv.expression(), indent) + ")";
+                    } else {
+                        propName = kv.getText();
+                    }
+                    List<JhpParser.SquareCurlyExpressionContext> sqList = kv.squareCurlyExpression();
+                    if (sqList.isEmpty()) {
+                        result = className + "." + propName;
+                    } else {
+                        StringBuilder sb = new StringBuilder("JhpRuntime.arrayGet(")
+                                .append(className).append(".").append(propName);
+                        for (JhpParser.SquareCurlyExpressionContext sq : sqList) {
+                            if (sq.expression() != null) {
+                                sb.append(", ").append(exprProc.generateExpression(sq.expression(), indent));
+                            }
+                        }
+                        sb.append(")");
+                        result = sb.toString();
+                    }
                 } else {
-                    result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
-                    varType = "Object";
+                    result = className; // 没有 keyedVariable，直接是类名
+                }
+            } else {
+                // 普通变量（如 $var）
+                String varName = getBaseVarName(chain);
+                List<String> subscripts = extractSubscripts(chain);
+                result = varName;
+                if (!subscripts.isEmpty()) {
+                    String varType = exprProc.getVariableTypes(varName);
+                    for (String index : subscripts) {
+                        if (JhpUtils.isListType(varType)) {
+                            result = result + ".get(" + index + ")";
+                            varType = JhpUtils.extractElementType(varType);
+                        } else if (JhpUtils.isMapType(varType)) {
+                            result = result + ".get(" + index + ")";
+                            varType = JhpUtils.extractElementType(varType);
+                        } else {
+                            result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                            varType = "Object";
+                        }
+                    }
                 }
             }
+
+            // 统一处理后续的 memberAccess（-> 调用链）
+            for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+                result += generateMemberAccess(ma, indent);
+            }
+            return result;
         }
 
-
-        // 处理后续的 memberAccess（如 $this->score, $obj->method()）
-        for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
-            System.err.println("DEBUG: Processing member access: " + ma.getText());
-            result += generateMemberAccess(ma, indent);
-            System.err.println("DEBUG: Result after member access: " + result);
-        }
-        return result;
+        // 其他情况（如 (new expr)）
+        return chain.getText(); // fallback
     }
 
     // 原有方法改为调用上面那个
     public String generateChain(JhpParser.ChainExpressionContext ctx, int indent) {
         return generateChain(ctx.chain(), indent);
     }
+
 
     // 提取最左侧的变量名（不包含下标）
     private String getBaseVarName(JhpParser.ChainContext chain) {
@@ -195,6 +240,16 @@ public class AtomicExpressionProcessor {
             String fullName = fcn.qualifiedNamespaceName().getText();
             // 去除前导反斜杠
             fullName = fullName.replaceAll("^\\\\+", "");
+             // 特殊类名映射
+            if (fullName.equalsIgnoreCase("self")) {
+                return "this";
+            }
+            if (fullName.equalsIgnoreCase("parent")) {
+                return "super";
+            }
+            if (fullName.equalsIgnoreCase("static")) {
+                return "this";   // 后期静态绑定，当前作为 this 处理
+            }
             // 将剩余反斜杠替换为 .
             fullName = fullName.replace("\\", ".");
             return fullName;
@@ -231,7 +286,13 @@ public class AtomicExpressionProcessor {
             // 左侧是 qualifiedStaticTypeRef 或 keyedVariable 或 string
             String leftPart;
             if (cc.qualifiedStaticTypeRef() != null) {
-                leftPart = cc.qualifiedStaticTypeRef().getText().replace("\\", ".");
+                leftPart = JhpUtils.qualifiedStaticTypeRefToJava(cc.qualifiedStaticTypeRef());
+                if ("this".equals(leftPart)) {
+                    String curClass = exprProc.getCurrentClassName();
+                    if (curClass != null && !curClass.isEmpty()) {
+                        leftPart = curClass;
+                    }
+                }
             } else if (cc.keyedVariable() != null) {
                 leftPart = JhpUtils.getVarNameFromChain(null); // 需要从 keyedVariable 提取，暂略
                 // 简化：keyedVariable 文本去掉 $ 等

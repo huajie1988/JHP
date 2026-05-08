@@ -32,13 +32,13 @@ public class UnaryExpressionProcessor {
 
     public String generatePrefixIncDec(JhpParser.PrefixIncDecExpressionContext ctx, int indent) {
         String op = ctx.getChild(0).getText();   // 第一个孩子是 '++' 或 '--'
-        String operand = JhpUtils.getVarNameFromChain(ctx.chain());
+        String operand = exprProc.generateChainCode(ctx.chain(), indent);
         return op + operand;
     }
 
     public String generatePostfixIncDec(JhpParser.PostfixIncDecExpressionContext ctx, int indent) {
         String op = ctx.getChild(ctx.getChildCount() - 1).getText();
-        String operand = JhpUtils.getVarNameFromChain(ctx.chain());
+        String operand = exprProc.generateChainCode(ctx.chain(), indent);
         return operand + op;
     }
     

@@ -33,6 +33,17 @@ public class InferType {
             if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
                 JhpParser.FunctionCallContext funcCall = chain.chainOrigin().functionCall();
                 String funcName = JhpUtils.resolveFunctionNameForInfer(funcCall.functionCallName());
+                // 将 self/static/parent 替换为当前类名，以匹配符号表中的键
+                if (funcName != null) {
+                    String curClass = varProc.getCurrentClassName();
+                    if (curClass != null && !curClass.isEmpty()) {
+                        if (funcName.startsWith("self.")) {
+                            funcName = curClass + funcName.substring(4);
+                        } else if (funcName.startsWith("static.")) {
+                            funcName = curClass + funcName.substring(7);
+                        }
+                    }
+                }
                 return varProc.getFunctionReturnType(funcName);
             }
 

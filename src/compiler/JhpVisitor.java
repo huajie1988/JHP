@@ -445,19 +445,24 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         // 提取类名和类型
         String className = ctx.identifier().getText();
         boolean isInterface = ctx.Interface() != null;
-        // 暂时忽略接口细节，按类处理
-        // TODO 后续添加接口支持
-        if (isInterface) {
-            // 暂不支持，生成注释
-            JhpUtils.printIndent(out, indentLevel);
-            out.println("// Interface " + className + " is not supported yet");
-            return null;
-        }
+
         // 修饰符：abstract, final 等
         String modifiers = "";
+
+        if (ctx.Public() != null) {
+            modifiers += "public ";
+        } else if (ctx.Protected() != null) {
+            modifiers += "protected ";
+        } else if (ctx.Private() != null) {
+            modifiers += "private ";
+        } else {
+            modifiers += "public "; // PHP 默认 public
+        }
+
         if (ctx.modifier() != null) {
             modifiers += ctx.modifier().getText() + " ";
         }
+
         // extends
         String extendsClause = "";
         if (ctx.Extends() != null && ctx.qualifiedStaticTypeRef() != null) {
@@ -477,14 +482,25 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
         // 输出类头
         JhpUtils.printIndent(out, indentLevel);
-        out.println(modifiers + "class " + className + extendsClause + implementsClause + " {");
+        String classType = "class";
+        if(isInterface) {
+            classType = "interface";
+        }
+        
+        // 如果走了interface，则这里ctx.classEntryType是null
+        if(!isInterface && ctx.classEntryType() != null && ctx.classEntryType().Trait() != null) {
+            System.err.println("Warning: trait is not directly supported, treating as class");
+            classType = "class"; // Java 没有 trait，暂当作普通类处理
+        }
+
+        out.println(modifiers + classType+" " + className + extendsClause + implementsClause + " {");
         indentLevel++;
 
         insideClass = true;
 
         // 翻译类成员
         for (JhpParser.ClassStatementContext stmt : ctx.classStatement()) {
-            translateClassStatement(stmt);
+            translateClassStatement(stmt, ctx);
         }
 
         insideClass = false;
@@ -495,141 +511,175 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return null;
     }
 
-    private void translateClassStatement(JhpParser.ClassStatementContext stmt) {
+    private void translateClassStatement(JhpParser.ClassStatementContext stmt,JhpParser.ClassDeclarationContext ctx) {
         if (stmt.Use() != null) {
             // trait use，暂不支持
             JhpUtils.printIndent(out, indentLevel);
-            out.println("// TODO: trait use");
+            out.println("The trait use statement is not supported yet; skipping.");
             return;
         }
-        // 属性声明
+
+        // 成员变量声明
         if (stmt.propertyModifiers() != null) {
-            // 文件去除了var修饰，因为PHP7后var默认就是public
-            String accessModifier = "public "; // PHP 默认 public
-            JhpParser.MemberModifiersContext modifiersCtx = stmt.propertyModifiers().memberModifiers();
-            if (modifiersCtx != null) {
-                accessModifier = JhpUtils.extractAccessModifier(modifiersCtx);
-            }
-            String type = "Object"; // 默认类型
-            if (stmt.typeHint() != null) {
-                type = JhpUtils.mapTypeHint(stmt.typeHint());
-            }
-            // 处理多个 variableInitializer（用逗号分隔）
-            for (JhpParser.VariableInitializerContext varInit : stmt.variableInitializer()) {
-                String varName = varInit.VarName().getText().substring(1); // 去掉 $
-                String init = "";
-                if (varInit.Eq() != null && varInit.constantInitializer() != null) {
-                    init = " = " + exprProc.generateConstantInitializer(varInit.constantInitializer(), indentLevel);
-                    // constantInitializer 内部可能是一个 expression，也可能嵌套 array 等，但 generateExpression 可处理
-                }
-                JhpUtils.printIndent(out, indentLevel);
-                out.println(accessModifier + type + " " + varName + init + ";");
-            }
+            generateClassMemberVariable(stmt);
             return;
         }
+
         // 常量声明
         if (stmt.Const() != null) {
-            //
-            String type = null;
-           
-            if (stmt.typeHint() != null) {
-                type = JhpUtils.mapTypeHint(stmt.typeHint());
-            }
+            generateClassConst(stmt);
+            return;
+        }
 
-            List<JhpParser.IdentifierInitializerContext> idInits = stmt.identifierInitializer();
-
-            if (type == null && !idInits.isEmpty()) {
-                // 无显式类型，遍历初始化器，只保留最后一条有效推断
-                String inferredType = "Object";
-                for (JhpParser.IdentifierInitializerContext idInit : idInits) {
-                    if (idInit.constantInitializer() != null) {
-                        String t = exprProc.inferTypeFromConstantInitializer(idInit.constantInitializer());
-                        if (t != null) {
-                            inferredType = t;
-                        }
-                    }
-                }
-                type = inferredType;
-            } else if (type == null) {
-                type = "Object";
-            }
-
-
-            for (JhpParser.IdentifierInitializerContext idInit : idInits) {
-                String constName = idInit.identifier().getText();
-                String init = "";
-                if (idInit.constantInitializer() != null) {
-                    String initCode = exprProc.generateConstantInitializer(idInit.constantInitializer(), indentLevel);
-                    init = " = " + initCode;
-                }
-                JhpUtils.printIndent(out, indentLevel);
-                out.println("public static final " + type + " " + constName + init + ";");
-            }
+        // 函数声明
+        if (stmt.Function_() != null) {
+            generateClassMethod(stmt, ctx);
             return;
         }
         
-        if (stmt.Function_() != null) {
-            // 提取修饰符（public/private/protected/static/abstract/final）
-            String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
-            String methodName = stmt.identifier().getText();
-            boolean isConstructor = JhpUtils.isConstructor(methodName);
-            if (isConstructor) {
-                methodName = varProc.getCurrentClassName();   // 需要能获取到当前类名
+    }
+
+    private void generateClassMemberVariable(JhpParser.ClassStatementContext stmt) {
+        
+        // 语法文件去除了var修饰，因为PHP7后var默认就是public
+        String accessModifier = "public "; // PHP 默认 public
+        JhpParser.MemberModifiersContext modifiersCtx = stmt.propertyModifiers().memberModifiers();
+        if (modifiersCtx != null) {
+            accessModifier = JhpUtils.extractAccessModifier(modifiersCtx);
+        }
+        String type = "Object"; // 默认类型
+        if (stmt.typeHint() != null) {
+            type = JhpUtils.mapTypeHint(stmt.typeHint());
+        }
+        // 处理多个 variableInitializer（用逗号分隔）
+        for (JhpParser.VariableInitializerContext varInit : stmt.variableInitializer()) {
+            String varName = varInit.VarName().getText().substring(1); // 去掉 $
+            String init = "";
+            if (varInit.Eq() != null && varInit.constantInitializer() != null) {
+                init = " = " + exprProc.generateConstantInitializer(varInit.constantInitializer(), indentLevel);
+                // constantInitializer 内部可能是一个 expression，也可能嵌套 array 等，但 generateExpression 可处理
             }
-            // 处理参数列表，并将参数注册到符号表
-            List<String> paramStrs = new ArrayList<>();
-            if (stmt.formalParameterList() != null) {
-                for (JhpParser.FormalParameterContext param : stmt.formalParameterList().formalParameter()) {
-                    String paramType = "Object";
-                    if (param.typeHint() != null) {
-                        paramType = JhpUtils.mapTypeHint(param.typeHint());
+            JhpUtils.printIndent(out, indentLevel);
+            out.println(accessModifier + type + " " + varName + init + ";");
+        }
+    }
+
+    private void generateClassConst(JhpParser.ClassStatementContext stmt) {
+        
+        String type = null;
+        
+        if (stmt.typeHint() != null) {
+            type = JhpUtils.mapTypeHint(stmt.typeHint());
+        }
+
+        List<JhpParser.IdentifierInitializerContext> idInits = stmt.identifierInitializer();
+
+        if (type == null && !idInits.isEmpty()) {
+            // 无显式类型，遍历初始化器，只保留最后一条有效推断
+            String inferredType = "Object";
+            for (JhpParser.IdentifierInitializerContext idInit : idInits) {
+                if (idInit.constantInitializer() != null) {
+                    String t = exprProc.inferTypeFromConstantInitializer(idInit.constantInitializer());
+                    if (t != null) {
+                        inferredType = t;
                     }
-                    String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
-                    paramStrs.add(paramType + " " + varName);
-                    varProc.setVariableType(varName, paramType); 
-                    
                 }
             }
-            String params = String.join(", ", paramStrs);
+            type = inferredType;
+        } else if (type == null) {
+            type = "Object";
+        }
 
-            // 返回类型
-            String returnType = "void";
-            // System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
-            if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
-                // System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
-                returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint());
+
+        for (JhpParser.IdentifierInitializerContext idInit : idInits) {
+            String constName = idInit.identifier().getText();
+            String init = "";
+            if (idInit.constantInitializer() != null) {
+                String initCode = exprProc.generateConstantInitializer(idInit.constantInitializer(), indentLevel);
+                init = " = " + initCode;
             }
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("public static final " + type + " " + constName + init + ";");
+        }
+    }
+     
+    private void generateClassMethod(JhpParser.ClassStatementContext stmt,JhpParser.ClassDeclarationContext ctx) {
+        // 提取修饰符（public/private/protected/static/abstract/final）
+        String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
+        String methodName = stmt.identifier().getText();
+        boolean isInterface = ctx.Interface() != null;
+        boolean isConstructor = JhpUtils.isConstructor(methodName);
+        if (isConstructor) {
+            methodName = varProc.getCurrentClassName();   // 需要能获取到当前类名
+        }
+        // 处理参数列表，并将参数注册到符号表
+        List<String> paramStrs = new ArrayList<>();
+        if (stmt.formalParameterList() != null) {
+            for (JhpParser.FormalParameterContext param : stmt.formalParameterList().formalParameter()) {
+                String paramType = "Object";
+                if (param.typeHint() != null) {
+                    paramType = JhpUtils.mapTypeHint(param.typeHint());
+                }
+                String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
+                paramStrs.add(paramType + " " + varName);
+                varProc.setVariableType(varName, paramType); 
+                
+            }
+        }
+        String params = String.join(", ", paramStrs);
 
-            // 根据方法体类型生成代码
-            JhpParser.MethodBodyContext body = stmt.methodBody();
-            if (body != null) {
-                if (body.SemiColon() != null) {
-                    // 抽象方法（无方法体）
-                    JhpUtils.printIndent(out, indentLevel);
+        // 返回类型
+        String returnType = "void";
+        // System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
+        if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
+            // System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
+            returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint()); 
+        }
+        // 构造函数没有返回类型
+        if(isConstructor) {
+            returnType = "";
+        }
+
+        // 根据方法体类型生成代码
+        JhpParser.MethodBodyContext body = stmt.methodBody();
+        if (body != null) {
+            if (body.SemiColon() != null) {
+                // 抽象方法（无方法体）
+                JhpUtils.printIndent(out, indentLevel);
+                out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
+            } else if (body.blockStatement() != null) {
+                // 如果声明了 abstract 但又有方法体，发出警告并去掉 abstract 修饰符
+                if(modifiers.contains("abstract")) {
+                    System.err.println("Warning: method " + methodName + " has a body but is declared abstract. Removing abstract modifier.");
+                    modifiers = modifiers.replace("abstract", "");
+                }
+
+                
+                // 具体方法
+                JhpUtils.printIndent(out, indentLevel);
+                if(isInterface){
+                    System.err.println("Warning: method " + methodName + " is declared in an interface but has a body. Removing method body.");
                     out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
-                } else if (body.blockStatement() != null) {
-                    // 具体方法
-                    JhpUtils.printIndent(out, indentLevel);
+                }else{
                     out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
-                    indentLevel++;
-                    // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
-                    // 处理构造器调用 baseCtorCall（仅限于构造方法）
-                    if (stmt.baseCtorCall() != null && isConstructor) {
-                        String superArgs = JhpUtils.generateArgumentsString(stmt.baseCtorCall().arguments(), exprProc, indentLevel);
-                        JhpUtils.printIndent(out, indentLevel);
-                        out.println("super(" + superArgs + ");");
-                    }
-
-                    visit(body.blockStatement()); // 递归翻译方法体
-                    indentLevel--;
-                    JhpUtils.printIndent(out, indentLevel);
-                    
                 }
+                indentLevel++;
+                // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
+                // 处理构造器调用 baseCtorCall（仅限于构造方法）
+                if (stmt.baseCtorCall() != null && isConstructor) {
+                    String superArgs = JhpUtils.generateArgumentsString(stmt.baseCtorCall().arguments(), exprProc, indentLevel);
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println("super(" + superArgs + ");");
+                }
+
+                visit(body.blockStatement()); // 递归翻译方法体
+                indentLevel--;
+                // JhpUtils.printIndent(out, indentLevel);
+                
             }
-            if (!isConstructor) {
-                varProc.setFunctionReturnType( methodName, returnType);
-            }
-            return;
+        }
+        if (!isConstructor) {
+            varProc.setFunctionReturnType( methodName, returnType);
         }
     }
 

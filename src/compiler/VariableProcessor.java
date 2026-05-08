@@ -76,7 +76,13 @@ public class VariableProcessor {
         System.err.println("DEBUG: Assignment operator is '" + assignOp + "'");
 
         if (assignOp.equals("=")) {
-            if (isIndexedAssignable(ctx.assignable())) {
+            if (isStaticPropertyAssignable(assignable)) {
+                // 静态属性赋值：生成 ClassName.prop = right;
+                String leftCode = exprProc.generateChainCode(assignable.chain(), indentLevel);
+                String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s = %s;%n", leftCode, rightCode);
+            } else if (isIndexedAssignable(ctx.assignable())) {
                 handleIndexedAssignment(ctx, indentLevel);
             } else if (hasMemberAccess(assignable)) {
                 // 对象属性 / 方法链赋值
@@ -90,7 +96,14 @@ public class VariableProcessor {
                 handleSimpleAssignment(leftVar, rightExpr, indentLevel);
             }
         } else {
-            if (isIndexedAssignable(ctx.assignable())) {
+            if (isStaticPropertyAssignable(assignable)) {
+                String leftCode = exprProc.generateChainCode(assignable.chain(), indentLevel);
+                String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
+                String baseOp = assignOp.substring(0, assignOp.length() - 1);
+                String javaOp = baseOp.equals(".") ? "+" : baseOp;
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s= %s;%n", leftCode, javaOp, rightCode);
+            } else if (isIndexedAssignable(ctx.assignable())) {
                 System.err.println("Compound assignment on array element is not supported yet.");
                 // 暂时忽略，或可扩展为 取值 -> 运算 -> 赋值
             } else if (hasMemberAccess(assignable)) {
@@ -130,11 +143,29 @@ public class VariableProcessor {
      */
     private void handleIndexedAssignment(JhpParser.AssignmentExpressionContext ctx, int indentLevel) {
         JhpParser.AssignableContext assignable = ctx.assignable();
-        String baseVar = JhpUtils.getVarNameFromChain(assignable.chain());
+
+        JhpParser.ChainContext chain = assignable.chain();
+        // String baseVar = JhpUtils.getVarNameFromChain(chain);
+
+        // 使用 generateChainCode 生成左值的基础部分（不包含下标），因为下标我们需要单独提取
+        // 更好的做法：直接生成无下标时的左值代码，然后再加上下标调用 arraySet
+        // 但 generateChainCode 会把下标也翻译成 get() 调用，这不符合赋值的需求。
+        // 所以我们需要一个方法生成“不带下标”的链代码。
+        // 简单起见：如果 chain.chainOrigin.chainBase 中有 qualifiedStaticTypeRef，就是静态属性，否则就是普通变量
+        String leftCode;
+        if (chain.chainOrigin().chainBase().qualifiedStaticTypeRef() != null) {
+            // 静态属性
+            String className = JhpUtils.qualifiedStaticTypeRefToJava(chain.chainOrigin().chainBase().qualifiedStaticTypeRef());
+            JhpParser.KeyedVariableContext kv = chain.chainOrigin().chainBase().keyedVariable(0);
+            String propName = kv.VarName().getText().substring(1); // 去掉 $
+            leftCode = className + "." + propName;
+        } else {
+            leftCode = JhpUtils.getVarNameFromChain(chain); // 普通变量
+        }
 
         // 提取所有下标表达式
         List<String> indices = new ArrayList<>();
-        JhpParser.ChainContext chain = assignable.chain();
+
         JhpParser.ChainOriginContext origin = chain.chainOrigin();
         if (origin != null && origin.chainBase() != null) {
             JhpParser.ChainBaseContext base = origin.chainBase();
@@ -150,9 +181,9 @@ public class VariableProcessor {
 
         String rightCode = exprProc.generateExpression(ctx.expression(), indentLevel);
 
-        // 生成 JhpRuntime.arraySet(baseVar, index1, index2, …, rightCode)
+        // 生成 JhpRuntime.arraySet(leftCode, index1, index2, …, rightCode)
         StringBuilder sb = new StringBuilder();
-        sb.append("runtime.JhpRuntime.arraySet(").append(baseVar);
+        sb.append("runtime.JhpRuntime.arraySet(").append(leftCode);
         for (String idx : indices) {
             sb.append(", ").append(idx);
         }
@@ -289,6 +320,22 @@ public class VariableProcessor {
         // 都没有，返回 Object
         return "Object";
 
+    }
+
+    /**
+     * 判断 assignable 是否包含静态属性访问（如 User::$prop 或 self::$prop）
+     */
+    private boolean isStaticPropertyAssignable(JhpParser.AssignableContext ctx) {
+        if (ctx.chain() != null) {
+            JhpParser.ChainContext chain = ctx.chain();
+            JhpParser.ChainOriginContext origin = chain.chainOrigin();
+            if (origin != null && origin.chainBase() != null) {
+                JhpParser.ChainBaseContext base = origin.chainBase();
+                // 如果 chainBase 中包含 qualifiedStaticTypeRef，说明是静态属性访问
+                return base.qualifiedStaticTypeRef() != null;
+            }
+        }
+        return false;
     }
 
 }

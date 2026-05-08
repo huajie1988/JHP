@@ -199,9 +199,12 @@ public final class JhpUtils {
      * 将 qualifiedStaticTypeRef 转换为 Java 类名，并处理泛型参数
      */
     public static String qualifiedStaticTypeRefToJava(JhpParser.QualifiedStaticTypeRefContext ctx) {
-        if (ctx.Static() != null) return "static";
+        // 处理static::调用
+        if (ctx.Static() != null) return "this";
+        String rawName = ctx.qualifiedNamespaceName().getText();   // 可能为 self、parent 等
+        String resolved = resolveSpecialClassName(rawName);
         StringBuilder sb = new StringBuilder();
-        sb.append(phpPackageToJavaPackage(ctx.qualifiedNamespaceName().getText()));
+        sb.append(phpPackageToJavaPackage(resolved));
         if (ctx.genericDynamicArgs() != null) {
             JhpParser.GenericDynamicArgsContext ga = ctx.genericDynamicArgs();
             if (ga.typeRef() != null && !ga.typeRef().isEmpty()) {
@@ -209,6 +212,13 @@ public final class JhpUtils {
             }
         }
         return sb.toString();
+    }
+
+    /** 将 self、parent 等转换为 Java 关键字 */
+    private static String resolveSpecialClassName(String name) {
+        if ("self".equals(name) || "self".equalsIgnoreCase(name)) return "this";
+        if ("parent".equals(name) || "parent".equalsIgnoreCase(name)) return "super";
+        return name;
     }
 
     /**
@@ -261,12 +271,19 @@ public final class JhpUtils {
 
     public static String extractAccessModifier(JhpParser.MemberModifiersContext modifiersCtx) {
         if (modifiersCtx == null || modifiersCtx.memberModifier() == null) return "public ";
+        boolean hasAccess = false;
+        StringBuilder sb = new StringBuilder();
         for (JhpParser.MemberModifierContext mod : modifiersCtx.memberModifier()) {
             String text = mod.getText().toLowerCase();
-            if (text.equals("public") || text.equals("private") || text.equals("protected"))
-                return text + " ";
+            if (text.equals("public") || text.equals("private") || text.equals("protected")) {
+                sb.append(text).append(" ");
+                hasAccess = true;
+            } else if (text.equals("static")) {
+                sb.append(text).append(" ");
+            }
         }
-        return "public ";
+        if (!hasAccess) sb.insert(0, "public ");
+        return sb.toString();
     }
 
     /**

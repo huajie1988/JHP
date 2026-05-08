@@ -177,4 +177,8 @@ public class ExpressionProcessor {
     public String generateChainCode(JhpParser.ChainContext chain, int indent) {
         return atomic.generateChain(chain, indent);
     }
+
+    public String getCurrentClassName() {
+        return varProc.getCurrentClassName();
+    }
 }

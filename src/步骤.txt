@@ -41,3 +41,68 @@ javac compiler/*.java
 
 执行测试
 java Main test.php
+
+
+建议的下一步实现特性（按优先级排序）：
+
+抽象类和方法
+
+当类有 abstract 修饰符时，翻译成 Java 的 abstract class。
+
+当方法有 abstract 修饰符时，去掉方法体，生成 abstract 方法签名。
+
+实现简单，能立刻支持模板方法模式。
+
+接口（interface）
+
+语法文件中 classDeclaration 已包含 Interface 分支，只需在 Visitor 中处理：
+
+翻译为 public interface X { ... }
+
+方法默认为 public abstract
+
+类实现接口（implements）已在类声明中部分支持，继续完善。
+
+静态成员（属性和方法）
+
+识别 static 修饰符，生成 Java 的 static 成员。
+
+静态方法中不能使用 $this，需要检查。
+
+静态属性访问（self::$prop）可翻译为 ClassName.prop，目前可通过 $this->$prop 或直接方法名访问，需要扩展 classConstant 的翻译。
+
+异常处理（try/catch/finally）
+
+visitTryCatchFinally 已存在，检查是否完整，补充变量声明、多异常捕获等。
+
+确保 throw 语句正确生成，异常类型映射到对应的 Java 异常类。
+
+match 表达式
+
+语法文件中已有 matchExpr，可翻译为 Java 的 switch 语句（如果 Java 14+ 可生成 switch 表达式）。
+
+支持多条件匹配（逗号分隔）和返回值。
+
+字符串内嵌变量
+
+双引号字符串中包含 $var 时，目前可能未完全处理，需转换为 Java 的字符串拼接或 String.format。
+
+类型系统的进一步强化
+
+可空类型（?int）已可映射，但需要确保赋值 null 时类型检查正确。
+
+联合类型（int|string）暂时可以作为 Object 处理，并给出警告。
+
+运行时库（JhpRuntime）补充
+
+补全 arrayGet、arraySet、echo 等辅助方法，确保生成的 Java 代码能编译运行。
+
+可以提供 JhpRuntime.objectToString 等帮助处理类型转换。
+
+代码质量提升
+
+错误提示优化（类型不匹配、未定义变量等）。
+
+添加简单的单元测试用例。
+
+当前最推荐立刻着手的是：抽象类和接口。 这两个特性实现简单，能立刻让你的编译器支持更完整的面向对象设计模式，且对后续特性（如静态成员、异常处理）有基础作用。完成后编译器即可用于编写实际项目。接下来可按上述顺序逐步完善。

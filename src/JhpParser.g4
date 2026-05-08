@@ -72,7 +72,7 @@ functionDeclaration
     ;
 
 classDeclaration
-    : attributes? Private? modifier? Partial? (
+    : attributes? (Private | Public | Protected)? modifier? Partial? (
         classEntryType identifier typeParameterListInBrackets? (Extends qualifiedStaticTypeRef)? (
             Implements interfaceList
         )?
