@@ -7,6 +7,8 @@ public class User {
     public String name = "Alice";
     private Double score = 3.14;
     protected Boolean active = true;
+    public List<String> tags = new ArrayList<>(Arrays.asList("new", "vip"));
+    public String names = "Alice,Bob,Charlie";
     public List<Integer> friendIds = new ArrayList<>(Arrays.asList(2, 3, 4));
     public Map<String, Integer> attributes = new HashMap<>() {{
         put("age", 30);
@@ -81,6 +83,8 @@ public class User {
     }
     public void display() 
     {
+        String tagsStr = ((String) JhpRuntime.join(" | ", this.tags));
+        List<String> namesList = JhpRuntime.split(",", this.names);
         JhpRuntime.echo("User: ", this.name, " (ID: ", this.id, ")\n");
         JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\n");
     }

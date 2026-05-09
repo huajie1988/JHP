@@ -12,7 +12,8 @@ class User {
     public string $name = "Alice";
     private float $score = 3.14;
     protected bool $active = true;
-    // public List<: BigDecimal :> $balance;
+    public List<: string :> $tags = ["new", "vip"];
+    public String $names = "Alice,Bob,Charlie";  // 用于测试字符串函数
     // 列表/映射/嵌套泛型
     public List<: int :> $friendIds = [2, 3, 4];
     public Map<: string, int :> $attributes = ["age" => 30, "level" => 5];
@@ -97,6 +98,8 @@ class User {
 
     public function display(): void {
         
+        $tagsStr = (string) join(" | ", $this->tags);
+        $namesList = split(",", $this->names);
         echo "User: ", $this->name, " (ID: ", $this->id, ")\n";
         echo "Active: ", $this->active ? "true" : "false", "\n";
     }

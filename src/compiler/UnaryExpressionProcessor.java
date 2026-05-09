@@ -14,11 +14,11 @@ public class UnaryExpressionProcessor {
         this.out = out;
     }
     public String generateCast(JhpParser.CastExpressionContext ctx, int indent) {
-        String castType = ctx.castOperation().getText();
-        String javaType;
+         String javaType;
         if (ctx.castOperation().qualifiedStaticTypeRef() != null) {
             javaType = JhpUtils.qualifiedStaticTypeRefToJava(ctx.castOperation().qualifiedStaticTypeRef());
         } else {
+            String castType = ctx.castOperation().getText();
             javaType = JhpUtils.mapJhpTypeToJavaType(castType);
         }
         String inner = exprProc.generateExpression(ctx.expression(), indent);

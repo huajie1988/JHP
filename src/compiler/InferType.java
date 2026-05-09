@@ -2,13 +2,29 @@ package compiler;
 
 import jhp.parser.*;
 
-import java.util.List;
+import java.util.*;
 
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class InferType {
     private VariableProcessor varProc;
+
+    private static final Map<String, String> BUILTIN_RETURN_TYPES = new HashMap<>();
+    static {
+        BUILTIN_RETURN_TYPES.put("count","Long");
+        BUILTIN_RETURN_TYPES.put( "split","List<String>");
+        BUILTIN_RETURN_TYPES.put( "join","String");
+        BUILTIN_RETURN_TYPES.put( "implode","String");
+        BUILTIN_RETURN_TYPES.put( "explode","List<String>");
+        BUILTIN_RETURN_TYPES.put( "substr","String");
+        BUILTIN_RETURN_TYPES.put( "strtolower","String");
+        BUILTIN_RETURN_TYPES.put( "strtoupper","String");
+        BUILTIN_RETURN_TYPES.put( "trim","String");
+        BUILTIN_RETURN_TYPES.put( "ltrim","String");
+        BUILTIN_RETURN_TYPES.put( "rtrim","String");
+    }
+
     public InferType(VariableProcessor varProc) {
         this.varProc = varProc;
     }
@@ -43,6 +59,10 @@ public class InferType {
                             funcName = curClass + funcName.substring(7);
                         }
                     }
+                }
+                 // 首先检查内置函数映射表
+                if (funcName != null && BUILTIN_RETURN_TYPES.containsKey(funcName)) {
+                    return BUILTIN_RETURN_TYPES.get(funcName);
                 }
                 return varProc.getFunctionReturnType(funcName);
             }
@@ -118,8 +138,11 @@ public class InferType {
             return JhpUtils.mapTypeRefToJava(typeRef);
         }else if (ctx instanceof JhpParser.CastExpressionContext) {
             JhpParser.CastExpressionContext castCtx = (JhpParser.CastExpressionContext) ctx;
-            String castType = castCtx.castOperation().getText();  // 如 "int"、"float" 等
-            return JhpUtils.mapJhpTypeToJavaType(castType);      // 转换为 Java 包装类型
+            if (castCtx.castOperation().qualifiedStaticTypeRef() != null) {
+                return JhpUtils.qualifiedStaticTypeRefToJava(castCtx.castOperation().qualifiedStaticTypeRef());
+            } else {
+                return JhpUtils.mapJhpTypeToJavaType(castCtx.castOperation().getText());
+            }      // 转换为 Java 包装类型
         }
         return "Object";
     }
@@ -397,6 +420,11 @@ public class InferType {
                 if (funcName.startsWith("self.")) funcName = curClass + funcName.substring(4);
                 else if (funcName.startsWith("static.")) funcName = curClass + funcName.substring(7);
                 else if (funcName.startsWith("parent.")) funcName = curClass + funcName.substring(7);
+            }
+
+            // 首先检查内置函数映射表
+            if (funcName != null && BUILTIN_RETURN_TYPES.containsKey(funcName)) {
+                return BUILTIN_RETURN_TYPES.get(funcName);
             }
             return varProc.getFunctionReturnType(funcName);
         }
