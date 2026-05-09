@@ -7,6 +7,7 @@ public class User {
     public String name = "Alice";
     private Double score = 3.14;
     protected Boolean active = true;
+    public UserService userService;
     public List<String> tags = new ArrayList<>(Arrays.asList("new", "vip"));
     public String names = "Alice,Bob,Charlie";
     public List<Integer> friendIds = new ArrayList<>(Arrays.asList(2, 3, 4));

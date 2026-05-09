@@ -6,12 +6,20 @@ include runtime\JhpRuntime;
 /**
  * 用户测试类
  */
+//#[JavaDoc(@Service,@Repository)]
+//#[JavaDoc(@Data)]
 class User {
     // ---------- 成员变量 ----------
+
     public int $id = 0;
     public string $name = "Alice";
     private float $score = 3.14;
     protected bool $active = true;
+
+    //#[JavaDoc(@Autowired,@Qualifier("userService"))]
+    //#[JavaDoc(@Autowired)]
+    public UserService $userService;
+
     public List<: string :> $tags = ["new", "vip"];
     public String $names = "Alice,Bob,Charlie";  // 用于测试字符串函数
     // 列表/映射/嵌套泛型
@@ -54,6 +62,7 @@ class User {
     }
 
     // ---------- 普通方法 ----------
+    //#[JavaDoc(@Override,@Transactional)]
     public function getScore(float $multiplier, float $bonus): double {
         return $this->score * $multiplier + $bonus;
     }

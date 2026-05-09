@@ -455,6 +455,12 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         String className = ctx.identifier().getText();
         boolean isInterface = ctx.Interface() != null;
 
+        if (ctx.attributes() != null) {
+            // 属性声明
+            generateClassAttribute(ctx.attributes());
+
+        }
+
         // 修饰符：abstract, final 等
         String modifiers = "";
 
@@ -520,6 +526,28 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return null;
     }
 
+    private void generateClassAttribute(JhpParser.AttributesContext ctx) {
+        for (JhpParser.AttributeGroupContext group : ctx.attributeGroup()) {
+            for (JhpParser.AttributeContext attr : group.attribute()) {
+                String indefierType = attr.qualifiedNamespaceName().getText();
+                if(indefierType.equals("JavaDoc")){
+                    JhpParser.ArgumentsContext args = attr.arguments();
+                    if (args != null && args.actualArgument().size() > 0) {
+                        for (JhpParser.ActualArgumentContext arg : args.actualArgument()){
+                            JhpUtils.printIndent(out, indentLevel);
+                            String typeArg = arg.expression().getText();
+                            System.err.println("DEBUG: typeArg = " + typeArg);
+                            if (typeArg.startsWith("\"") || typeArg.startsWith("'")) {
+                                typeArg = typeArg.substring(1, typeArg.length() - 1);
+                            }
+                            out.println( typeArg );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private void translateClassStatement(JhpParser.ClassStatementContext stmt,JhpParser.ClassDeclarationContext ctx) {
         if (stmt.Use() != null) {
             // trait use，暂不支持
@@ -549,7 +577,12 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     }
 
     private void generateClassMemberVariable(JhpParser.ClassStatementContext stmt) {
-        
+
+        // 先处理 Attributes（例如 #[JavaDoc(@Autowired)]）
+        if (stmt.attributes() != null) {
+            generateClassAttribute(stmt.attributes());
+        }
+
         // 语法文件去除了var修饰，因为PHP7后var默认就是public
         String accessModifier = "public "; // PHP 默认 public
         JhpParser.MemberModifiersContext modifiersCtx = stmt.propertyModifiers().memberModifiers();
@@ -614,6 +647,10 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     }
      
     private void generateClassMethod(JhpParser.ClassStatementContext stmt,JhpParser.ClassDeclarationContext ctx) {
+        if(stmt.attributes()!=null){
+            generateClassAttribute(stmt.attributes());
+        }
+
         // 提取修饰符（public/private/protected/static/abstract/final）
         String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
         String methodName = stmt.identifier().getText();
