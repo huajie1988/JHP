@@ -1,6 +1,7 @@
 package App.Model;
 
 import java.util.*;
+import runtime.JhpRuntime;
 public class User {
     public Integer id = 0;
     public String name = "Alice";
@@ -38,7 +39,7 @@ public class User {
     }
     public static void printAppInfo() 
     {
-        runtime.JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\n");
+        JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\n");
     }
     public Double getScore(Double multiplier, Double bonus) 
     {
@@ -47,40 +48,40 @@ public class User {
     protected void init() 
     {
         Double c = User.PI * 2.0;
-        runtime.JhpRuntime.echo("Init with PI*2 = ", c, "\n");
+        JhpRuntime.echo("Init with PI*2 = ", c, "\n");
         if (this.score > 0)
         {
-            runtime.JhpRuntime.echo("Positive score\n");
+            JhpRuntime.echo("Positive score\n");
         }
         else
         {
-            runtime.JhpRuntime.echo("Non-positive score\n");
+            JhpRuntime.echo("Non-positive score\n");
         }
-        for (Integer i = 0; i < 3; i++)
+        for (Integer i = 0; i < JhpRuntime.count(this.friendIds); i++)
         {
             Integer fid = this.friendIds.get(i);
-            runtime.JhpRuntime.echo("Friend[", i, "] = ", fid, "\n");
+            JhpRuntime.echo("Friend[", i, "] = ", fid, "\n");
         }
         for (Integer id : this.friendIds) {
-            runtime.JhpRuntime.echo("Friend ID: ", id, "\n");
+            JhpRuntime.echo("Friend ID: ", id, "\n");
         }
         for (Map.Entry<String, Integer> key_entry : this.attributes.entrySet()) {
             String key = key_entry.getKey();
             Integer value = key_entry.getValue();
-            runtime.JhpRuntime.echo(key, " => ", value, "\n");
+            JhpRuntime.echo(key, " => ", value, "\n");
         }
         for (Map<String, String> row : this.complexData) {
-            runtime.JhpRuntime.echo("Row:\n");
+            JhpRuntime.echo("Row:\n");
             for (Map.Entry<String, String> k_entry : row.entrySet()) {
                 String k = k_entry.getKey();
                 String v = k_entry.getValue();
-                runtime.JhpRuntime.echo("  ", k, ": ", v, "\n");
+                JhpRuntime.echo("  ", k, ": ", v, "\n");
             }
         }
     }
     public void display() 
     {
-        runtime.JhpRuntime.echo("User: ", this.name, " (ID: ", this.id, ")\n");
-        runtime.JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\n");
+        JhpRuntime.echo("User: ", this.name, " (ID: ", this.id, ")\n");
+        JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\n");
     }
 }

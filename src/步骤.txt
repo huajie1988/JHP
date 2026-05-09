@@ -42,6 +42,9 @@ javac compiler/*.java
 执行测试
 java Main test.php
 
+runtime打包
+javac runtime/JhpRuntime.java
+jar cvf jhp-runtime.jar runtime/*.class
 
 建议的下一步实现特性（按优先级排序）：
 
@@ -110,3 +113,4 @@ match 表达式
 添加简单的单元测试用例。
 
 当前最推荐立刻着手的是：抽象类和接口。 这两个特性实现简单，能立刻让你的编译器支持更完整的面向对象设计模式，且对后续特性（如静态成员、异常处理）有基础作用。完成后编译器即可用于编写实际项目。接下来可按上述顺序逐步完善。
+

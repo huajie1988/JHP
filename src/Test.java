@@ -1,13 +1,14 @@
 import java.util.*;
+import runtime.JhpRuntime;
 public class Test {
     public static  String func1(String b, Integer c) 
     {
-        runtime.JhpRuntime.echo("Hello from func1\n", c);
+        JhpRuntime.echo("Hello from func1\n", c);
         return "Result from func1" + b;
     }
     public static  void func2() 
     {
-        runtime.JhpRuntime.echo("Hello from func2\n");
+        JhpRuntime.echo("Hello from func2\n");
     }
     public static void main(String[] args) {
         ArrayList<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4 + 1));
@@ -15,8 +16,8 @@ public class Test {
             put("name", "Alice");
             put("age", 30);
         }};
-        runtime.JhpRuntime.echo(list, "\n");
-        runtime.JhpRuntime.echo(map, "\n");
+        JhpRuntime.echo(list, "\n");
+        JhpRuntime.echo(map, "\n");
         Integer a = 10;
         ArrayList<ArrayList<Integer>> array = new ArrayList<>(Arrays.asList(new ArrayList<>(Arrays.asList(1, 2, 3)), new ArrayList<>(Arrays.asList(4, 5, 6)), new ArrayList<>(Arrays.asList(7, 8, 9))));
         HashMap<String, HashMap<String, Object>> map3 = new HashMap<>() {{
@@ -31,19 +32,19 @@ public class Test {
         }};
         ArrayList<Integer> n = array.get(1);
         String fffff = func1(" PHP", 100);
-        runtime.JhpRuntime.echo(fffff, "\n");
+        JhpRuntime.echo(fffff, "\n");
         for (ArrayList<Integer> row : array) {
-            runtime.JhpRuntime.echo(row, ":\n");
+            JhpRuntime.echo(row, ":\n");
             for (int k2 = 0; k2 < row.size(); k2++) {
                 Integer value = row.get(k2);
-                runtime.JhpRuntime.echo(k2, ": ", value, "\n");
+                JhpRuntime.echo(k2, ": ", value, "\n");
             }
         }
         func2();
         for (HashMap<String, Object> personInfo : map3.values()) {
             for (Object infoValue : personInfo.values()) {
-                runtime.JhpRuntime.echo("aaaa\n");
-                runtime.JhpRuntime.echo("  ", infoValue, "\n");
+                JhpRuntime.echo("aaaa\n");
+                JhpRuntime.echo("  ", infoValue, "\n");
             }
         }
     }

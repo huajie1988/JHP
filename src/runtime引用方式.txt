@@ -1,0 +1,131 @@
+你提到的这个问题非常实际，涉及到编译后代码的可移植性。当生成的 Java 文件脱离原始编译器项目后，运行时库必须作为独立的依赖存在。
+
+最佳的做法是：将 JhpRuntime 单独编译成一个 jar 包，然后生成的代码通过 import 引用这个类，编译和运行时都将这个 jar 添加到 classpath。
+
+具体操作步骤
+1. 确定包结构
+假设你的 JhpRuntime.java 目前位于 runtime 包下，内容类似：
+
+java
+package runtime;
+public class JhpRuntime {
+    public static void echo(Object... args) { ... }
+    public static int count(Object arr) { ... }
+    // ...
+}
+生成的 Java 代码中会包含 import runtime.JhpRuntime;。
+
+2. 编译 JhpRuntime 为 Jar
+在项目目录中执行（假设 JhpRuntime.java 在 ./runtime/ 下）：
+
+bash
+javac runtime/JhpRuntime.java
+jar cvf jhp-runtime.jar runtime/*.class
+这会产生 jhp-runtime.jar。
+
+3. 修改编译器生成代码的导入语句
+你的 JhpVisitor 中已经输出了 import java.util.*; 和 import java.math.BigDecimal;，现在需要额外添加（如果未添加）：
+
+java
+out.println("import runtime.JhpRuntime;");
+之后生成的代码就会显式导入运行时类。
+
+4. 移动生成的 Java 文件后如何编译和运行
+用户拿到 GeneratedClass.java 和 jhp-runtime.jar 后：
+
+编译：
+
+bash
+javac -cp jhp-runtime.jar GeneratedClass.java
+运行：
+
+bash
+java -cp .:jhp-runtime.jar GeneratedClass
+如果用户将生成的类放在某个目录下（比如 src/），classpath 需要相应调整。通常可以提供一个简单的脚本或说明文档。
+
+更便捷的方案：发布包含运行时的独立 Jar
+你也可以在生成代码后，用 Gradle/Maven 将生成的类与 jhp-runtime.jar 合并成一个可执行的 fat jar。但这个已经超出了编译器本身的范围，可以作为后续工具链的增强。
+
+编译器自身的调整
+你的编译器不需要做太多改动，只需：
+
+确保生成的 Java 文件包含 import runtime.JhpRuntime;。
+
+在编译阶段（Main.java 中调用 javax.tools.JavaCompiler）时，将 jhp-runtime.jar 的路径加入到编译 classpath 中。目前你的 JavaCompiler.run(null, null, null, javaFile) 没有设置 classpath，可以改为：
+
+java
+JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+StandardJavaFileManager fm = compiler.getStandardFileManager(null, null, null);
+Iterable<? extends JavaFileObject> units = fm.getJavaFileObjects(javaFile);
+List<String> options = Arrays.asList("-cp", "path/to/jhp-runtime.jar");
+compiler.getTask(null, fm, null, options, null, units).call();
+或者简单地将 jarpath 加入系统 classpath 即可。
+
+总结
+立即要做：在生成的代码中添加 import runtime.JhpRuntime;（如果已经添加则检查包名是否一致）。
+
+后续：将 JhpRuntime 打包为 jhp-runtime.jar，并修改 Main.java 中的编译参数以包含该 jar。
+
+最终：用户只需携带生成的 Java 文件与 jhp-runtime.jar 即可在任何装有 JDK 的环境中编译运行。
+
+要将 JhpRuntime 类库引入 Spring 项目，最简单的方法是在 pom.xml 中使用 system scope 依赖，直接引用本地的 jhp-runtime.jar。或者你也可以将 jar 安装到本地 Maven 仓库，然后用普通依赖引用。
+
+方法一：使用 system 依赖（推荐，无需额外命令）
+获取 jhp-runtime.jar
+在编译器项目的 runtime 包目录下编译并打包：
+
+bash
+javac runtime/JhpRuntime.java
+jar cvf jhp-runtime.jar runtime/*.class
+得到一个 jhp-runtime.jar 文件。
+
+将 jar 放到 Spring 项目里
+在 Spring 项目根目录新建 lib/ 文件夹，将 jhp-runtime.jar 复制进去。
+
+修改 pom.xml
+在 <dependencies> 中添加：
+
+xml
+<dependency>
+    <groupId>com.yourname</groupId>
+    <artifactId>jhp-runtime</artifactId>
+    <version>1.0</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/lib/jhp-runtime.jar</systemPath>
+</dependency>
+确保生成的 Java 文件正确导入了运行时类
+你的编译器生成的代码中应该有：
+
+java
+import runtime.JhpRuntime;
+并且调用的地方写作 JhpRuntime.echo(...)，而不是全限定名。
+
+将生成的 Java 文件放入 Spring 项目的正确位置
+例如：src/main/java/com/example/controller/MyController.java（注意包名与目录结构一致）。
+如果生成的代码带有 package 声明（如 package com.example.controller;），务必按照包名创建对应的目录，否则编译失败。
+
+编译并运行 Spring 项目
+Maven 在编译时会自动从 lib/ 下读取 jar，运行时也会将其加入 classpath。
+
+方法二：安装到本地 Maven 仓库（适合长期使用）
+安装 jar 到本地仓库：
+
+bash
+mvn install:install-file -Dfile=jhp-runtime.jar -DgroupId=com.yourname \
+  -DartifactId=jhp-runtime -Dversion=1.0 -Dpackaging=jar
+在 pom.xml 中像普通依赖一样引用：
+
+xml
+<dependency>
+    <groupId>com.yourname</groupId>
+    <artifactId>jhp-runtime</artifactId>
+    <version>1.0</version>
+</dependency>
+额外提醒
+检查生成代码的包名：如果你的编译器生成的类有 package com.example.controller;，那么文件必须放在 src/main/java/com/example/controller/ 目录下，否则 Spring 无法扫描到。
+
+确保运行时类的版本一致：如果日后你修改了 JhpRuntime 的方法签名，记得重新打包 jar 并替换 Spring 项目中的 jar（或重新安装到本地仓库）。
+
+如果生成代码中仍有 runtime.JhpRuntime 全限定名，你需要先按上一轮的修改，在编译器的代码生成部分把字符串 "runtime.JhpRuntime" 替换为 "JhpRuntime"，并在生成的 Java 文件头部加上 import runtime.JhpRuntime;。否则即使引入了 jar，生成的代码中大量 runtime.JhpRuntime.arrayGet(...) 也会让代码显得冗长。不过功能上，全限定名也是完全可以正常编译运行的，只是不够简洁。你可以先不改这个，直接测试集成，等稳定后再统一替换。
+
+现在，你的 Spring 项目可以完全脱离编译器环境，只要带着 jhp-runtime.jar，就能正常运行由 PHP 翻译过来的 Java 代码。

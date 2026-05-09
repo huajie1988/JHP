@@ -63,7 +63,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             
             // 输出默认的 import
             out.println("import java.util.*;");
-            
+            out.println("import runtime.JhpRuntime;");
             out.println("public class " + mainClassName + " {");
             indentLevel++;
 
@@ -126,7 +126,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         }
         
         indent();
-        out.printf("runtime.JhpRuntime.echo(%s);%n", args.toString());
+        out.printf("JhpRuntime.echo(%s);%n", args.toString());
         return null;
     }
 

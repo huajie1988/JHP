@@ -5,12 +5,22 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
 
 public class AtomicExpressionProcessor {
     private final PrintWriter out;
     private final ExpressionProcessor exprProc;
     private boolean staticContext = false;
+
+    // 内置运行时函数名（需要翻译为 JhpRuntime.xxx）
+    private static final Set<String> RUNTIME_FUNCTIONS = new HashSet<>(Arrays.asList(
+        "count", "split", "join", "implode", "explode", "substr", "strtolower", "strtoupper", "trim", "ltrim", "rtrim"
+    ));
+
+    private boolean isRuntimeFunction(String name) {
+        return RUNTIME_FUNCTIONS.contains(name);
+    }
 
     public void setStaticContext(boolean v) {
         this.staticContext = v;
@@ -98,7 +108,7 @@ public class AtomicExpressionProcessor {
                             result = result + ".get(" + index + ")";
                             varType = JhpUtils.extractElementType(varType);
                         } else {
-                            result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                            result = "JhpRuntime.arrayGet(" + result + ", " + index + ")";
                             varType = "Object";
                         }
                     }
@@ -137,7 +147,7 @@ public class AtomicExpressionProcessor {
                         result += ".get(" + index + ")";
                         currentType = JhpUtils.extractElementType(currentType); // 更新为值类型
                     } else {
-                        result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                        result = "JhpRuntime.arrayGet(" + result + ", " + index + ")";
                         currentType = "Object";
                     }
                 }
@@ -264,6 +274,11 @@ public class AtomicExpressionProcessor {
         String methodPath = extractFunctionName(fcn, indent);
         String args = generateArguments(funcCall.actualArguments(), indent);
         
+        // 检查是否是运行时内置函数
+        if (isRuntimeFunction(methodPath)) {
+            methodPath = "JhpRuntime." + methodPath;   // 重定向到运行时类
+        }
+
         // 基础调用：methodPath(args)
         StringBuilder result = new StringBuilder(methodPath).append("(").append(args).append(")");
         

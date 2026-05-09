@@ -2,7 +2,7 @@
 namespace App\Model;
 
 import java\util\*;  // 翻译为 import java.util.*;
-
+include runtime\JhpRuntime;
 /**
  * 用户测试类
  */
@@ -70,7 +70,7 @@ class User {
         }
 
         // 测试 for 循环
-        for ($i = 0; $i < 3; $i++) {
+        for ($i = 0; $i < count($this->friendIds); $i++) {
             
             $fid = $this->friendIds[$i];
             echo "Friend[", $i, "] = ", $fid, "\n";

@@ -183,7 +183,7 @@ public class VariableProcessor {
 
         // 生成 JhpRuntime.arraySet(leftCode, index1, index2, …, rightCode)
         StringBuilder sb = new StringBuilder();
-        sb.append("runtime.JhpRuntime.arraySet(").append(leftCode);
+        sb.append("JhpRuntime.arraySet(").append(leftCode);
         for (String idx : indices) {
             sb.append(", ").append(idx);
         }
