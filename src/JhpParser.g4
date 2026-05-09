@@ -261,7 +261,7 @@ tryCatchFinally
     ;
 
 catchClause
-    : Catch '(' qualifiedStaticTypeRef ('|' qualifiedStaticTypeRef)* VarName? ')' blockStatement
+    : Catch '(' qualifiedStaticTypeRef ('|' qualifiedStaticTypeRef)* VarName ')' blockStatement
     ;
 
 finallyStatement
@@ -855,5 +855,6 @@ castOperation
     | Array
     | ObjectType
     | Resource
+    | qualifiedStaticTypeRef
     // | Unset
     ;

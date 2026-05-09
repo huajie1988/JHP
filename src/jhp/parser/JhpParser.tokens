@@ -257,7 +257,6 @@ HereDocText=209
 'insteadof'=57
 'int8'=58
 'int16'=59
-'int64'=60
 'interface'=62
 'isset'=63
 'list'=64

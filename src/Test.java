@@ -29,19 +29,22 @@ public class Test {
             put("age", 25);
         }});
         }};
+        ArrayList<Integer> n = array.get(1);
         String fffff = func1(" PHP", 100);
         runtime.JhpRuntime.echo(fffff, "\n");
         for (ArrayList<Integer> row : array) {
-            {
-                runtime.JhpRuntime.echo(row, ":\n");
-                for (int k2 = 0; k2 < row.size(); k2++) {
-                    Integer value = row.get(k2);
-                    {
-                        runtime.JhpRuntime.echo(k2, ": ", value, "\n");
-                    }
-                }
+            runtime.JhpRuntime.echo(row, ":\n");
+            for (int k2 = 0; k2 < row.size(); k2++) {
+                Integer value = row.get(k2);
+                runtime.JhpRuntime.echo(k2, ": ", value, "\n");
             }
         }
         func2();
+        for (HashMap<String, Object> personInfo : map3.values()) {
+            for (Object infoValue : personInfo.values()) {
+                runtime.JhpRuntime.echo("aaaa\n");
+                runtime.JhpRuntime.echo("  ", infoValue, "\n");
+            }
+        }
     }
 }

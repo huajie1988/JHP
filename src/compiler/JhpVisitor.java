@@ -321,9 +321,9 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             arrayCode = exprProc.generateExpression(ctx.expression(), indentLevel);
         } else if (!ctx.chain().isEmpty()) {
             // 第一个 chain 是数组变量
-            arrayCode = JhpUtils.getVarNameFromChain(ctx.chain(0));
+            arrayCode = exprProc.generateChainCode(ctx.chain(0), indentLevel);
         } else {
-            System.err.println("Unsupported foreach syntax");
+            exprProc.fatalError("Unsupported foreach syntax");
             return null;
         }
 
@@ -345,7 +345,9 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         if (isExpressionArray) {
             arrayType = exprProc.inferTypeFromExpression(ctx.expression());
         } else {
-            arrayType = varProc.getVariableType(arrayCode);
+            // System.err.println("Warning: inferring array type from chain for foreach, may be inaccurate: " + ctx.getText());
+            arrayType = exprProc.inferTypeFromChain(ctx.chain(0));
+            // System.err.println("Inferred array type: " + arrayType);
         }
         String elementType = JhpUtils.extractElementType(arrayType);
         String keyType = JhpUtils.extractKeyType(arrayType);
@@ -388,7 +390,14 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
         // 5. 循环体
         if (ctx.statement() != null) {
-            visit(ctx.statement());
+            JhpParser.StatementContext bodyStmt = ctx.statement();
+            if (bodyStmt.blockStatement() != null) {
+                // 块语句：只访问内部，避免重复输出花括号
+                visit(bodyStmt.blockStatement().innerStatementList());
+            } else {
+                // 单条语句：直接访问
+                visit(bodyStmt);
+            }
         } else if (ctx.innerStatementList() != null) {
             System.err.println("Colon-style foreach not supported yet");
         }
@@ -561,6 +570,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             }
             JhpUtils.printIndent(out, indentLevel);
             out.println(accessModifier + type + " " + varName + init + ";");
+            varProc.setVariableType(varName, type);  // <-- 新增：向符号表注册成员名→类型
         }
     }
 
@@ -663,7 +673,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                 }else{
                     out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
                 }
-                indentLevel++;
+                // indentLevel++;
                 // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
                 // 处理构造器调用 baseCtorCall（仅限于构造方法）
                 if (stmt.baseCtorCall() != null && isConstructor) {
@@ -678,6 +688,8 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                     exprProc.setStaticContext(true);
                 }
 
+                
+
                 visit(body.blockStatement()); // 递归翻译方法体
 
                 // 还原静态上下文标志
@@ -685,7 +697,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                     exprProc.setStaticContext(false);
                 }
 
-                indentLevel--;
+                // indentLevel--;
                 // JhpUtils.printIndent(out, indentLevel);
                 
             }
@@ -733,6 +745,61 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         String returnCode = (ctx.expression() != null) ? exprProc.generateExpression(ctx.expression(), indentLevel) : "";
         indent();
         out.println("return " + returnCode + ";");
+        return null;
+    }
+
+    @Override
+    public Void visitTryCatchFinally(JhpParser.TryCatchFinallyContext ctx) { 
+        JhpUtils.printIndent(out, indentLevel);
+        out.println("try ");
+        // indentLevel++;
+        visit(ctx.blockStatement());
+        // indentLevel--;
+        JhpUtils.printIndent(out, indentLevel);
+
+        
+        // 2. catch 从句
+        if (ctx.catchClause() != null) {
+            for (JhpParser.CatchClauseContext catchCtx : ctx.catchClause()) {
+                // 异常类型转换
+
+                List<String> exceptionTypes = new ArrayList<>();
+                List<JhpParser.QualifiedStaticTypeRefContext> refs = catchCtx.qualifiedStaticTypeRef();
+                for (JhpParser.QualifiedStaticTypeRefContext ref : refs) {
+                    // System.err.println("DEBUG: Catch clause has exception type: " + ref.getText());
+                    exceptionTypes.add(JhpUtils.qualifiedStaticTypeRefToJava(ref));
+                }
+
+                if(exceptionTypes.isEmpty()) {
+                    exceptionTypes.add("Exception"); // 默认捕获 Exception
+                }
+
+                String exceptionType = String.join(" | ", exceptionTypes);
+                
+                // 变量名
+                String varName = "";
+                if (catchCtx.VarName() != null) {
+                    varName = catchCtx.VarName().getText().substring(1); // 去掉 $
+                    varProc.setVariableType(varName, exceptionType);     // 注册到符号表
+                }
+
+
+                out.println("catch (" + exceptionType + " " + varName + ") ");
+                // indentLevel++;
+                visit(catchCtx.blockStatement());
+                // indentLevel--;
+                
+            }
+        }
+
+        if (ctx.finallyStatement() != null) {
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("finally ");
+            // indentLevel++;
+            visit(ctx.finallyStatement().blockStatement());
+            // indentLevel--;
+        }
+
         return null;
     }
 

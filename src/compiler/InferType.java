@@ -49,21 +49,27 @@ public class InferType {
 
             // 2. 链上有成员访问（如 $this->getScore()）
             if (!chain.memberAccess().isEmpty()) {
-                // 获取最左侧的变量名（如 "this"）
-                String baseVar = JhpUtils.getVarNameFromChain(chain);
-                // 遍历成员访问，找出最后一个方法调用（有 actualArguments 的）
-                String methodName = null;
-                for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
-                    if (ma.actualArguments() != null) {
-                        methodName = ma.keyedFieldName().getText();
+                JhpParser.MemberAccessContext lastMa = chain.memberAccess().get(chain.memberAccess().size() - 1);
+                if (lastMa.actualArguments() == null) {
+                    // ---- 属性访问：$this->friendIds ----
+                    String memberName = extractAccessorNameFromMa(lastMa);
+                    if (memberName != null) {
+                        String memberType = varProc.getVariableType(memberName);
+                        if (!"Object".equals(memberType)) {
+                            if (hasSubscript(chain) || !chain.memberAccess().get(0).keyedFieldName().keyedSimpleFieldName().squareCurlyExpression().isEmpty()) {
+                                int totalDepth = getSubscriptDepth(chain);
+                                for (int i = 0; i < totalDepth; i++) {
+                                    memberType = JhpUtils.extractElementType(memberType);
+                                }
+                            }
+                            return memberType;
+                        }
                     }
-                }
-                if (methodName != null) {
-                    // 尝试从已注册的返回类型中获取（若未注册，返回默认 Object）
+                } else {
+                    // ---- 方法调用：$this->getScore() ----
+                    String methodName = lastMa.keyedFieldName().getText();
                     String type = varProc.getFunctionReturnType(methodName);
-                    if (!"Object".equals(type)) {
-                        return type;
-                    }
+                    if (!"Object".equals(type)) return type;
                 }
                 // 如果无法推断方法返回类型，则退回到变量类型（考虑下标）
                 // 继续执行下面的变量类型逻辑
@@ -110,18 +116,39 @@ public class InferType {
             JhpParser.NewExpressionContext newExpr = (JhpParser.NewExpressionContext) ctx;
             JhpParser.TypeRefContext typeRef = newExpr.newExpr().typeRef();
             return JhpUtils.mapTypeRefToJava(typeRef);
+        }else if (ctx instanceof JhpParser.CastExpressionContext) {
+            JhpParser.CastExpressionContext castCtx = (JhpParser.CastExpressionContext) ctx;
+            String castType = castCtx.castOperation().getText();  // 如 "int"、"float" 等
+            return JhpUtils.mapJhpTypeToJavaType(castType);      // 转换为 Java 包装类型
         }
         return "Object";
     }
 
     private int getSubscriptDepth(JhpParser.ChainContext chain) {
+        int depth = 0;
         if (chain.chainOrigin() != null && chain.chainOrigin().chainBase() != null) {
-            List<JhpParser.KeyedVariableContext> keyedVars = chain.chainOrigin().chainBase().keyedVariable();
-            if (keyedVars != null && !keyedVars.isEmpty()) {
-                return keyedVars.get(0).squareCurlyExpression().size();
+            JhpParser.ChainBaseContext base = chain.chainOrigin().chainBase();
+            if (base.keyedVariable() != null && !base.keyedVariable().isEmpty()) {
+                depth += base.keyedVariable(0).squareCurlyExpression().size();
             }
         }
-        return 0;
+        for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+            if (ma.keyedFieldName() != null && ma.keyedFieldName().keyedSimpleFieldName() != null) {
+                depth += ma.keyedFieldName().keyedSimpleFieldName().squareCurlyExpression().size();
+            }
+        }
+        return depth;
+    }
+
+    // 辅助提取属性名（与 Atomic 里的类似，但 InferType 不能直接引用，所以复制一个）
+    private String extractAccessorNameFromMa(JhpParser.MemberAccessContext ma) {
+        if (ma.keyedFieldName() != null && ma.keyedFieldName().keyedSimpleFieldName() != null) {
+            JhpParser.KeyedSimpleFieldNameContext ksn = ma.keyedFieldName().keyedSimpleFieldName();
+            if (ksn.identifier() != null) {
+                return ksn.identifier().getText();
+            }
+        }
+        return ma.keyedFieldName().getText().replaceAll("\\[.*?\\]", "");
     }
     /**
      * 判断链是否包含方括号下标访问
@@ -356,6 +383,47 @@ public class InferType {
         }
 
         return "Object";
+    }
+
+    public String inferTypeFromChain(JhpParser.ChainContext chain) {
+        // 直接复用现有逻辑：模拟一个 ChainExpressionContext 的部分逻辑
+        if (chain.chainOrigin() != null && chain.chainOrigin().functionCall() != null) {
+            // 处理函数调用...
+            JhpParser.FunctionCallContext funcCall = chain.chainOrigin().functionCall();
+            String funcName = JhpUtils.resolveFunctionNameForInfer(funcCall.functionCallName());
+            // 处理 self:: 等
+            if (funcName != null && varProc.getCurrentClassName() != null) {
+                String curClass = varProc.getCurrentClassName();
+                if (funcName.startsWith("self.")) funcName = curClass + funcName.substring(4);
+                else if (funcName.startsWith("static.")) funcName = curClass + funcName.substring(7);
+                else if (funcName.startsWith("parent.")) funcName = curClass + funcName.substring(7);
+            }
+            return varProc.getFunctionReturnType(funcName);
+        }
+
+        String varName = JhpUtils.getVarNameFromChain(chain);
+        String varType = varProc.getVariableType(varName);
+
+        // 如果有成员访问，尝试推断成员类型
+        if (!chain.memberAccess().isEmpty()) {
+            // 检查第一个成员访问是否是属性
+            JhpParser.MemberAccessContext ma = chain.memberAccess().get(0);
+            String memberName = ma.keyedFieldName().getText();
+            String memberType = varProc.getVariableType(memberName);  // 需要确保类成员变量已注册
+            if (!"Object".equals(memberType)) {
+                varType = memberType;  // 使用成员的类型作为数组类型的基础
+            }
+        }
+
+        // 处理下标，提取元素类型
+        if (hasSubscript(chain)) {
+            int depth = getSubscriptDepth(chain);
+            for (int i = 0; i < depth; i++) {
+                varType = JhpUtils.extractElementType(varType);
+            }
+            return varType;
+        }
+        return varType;  // 如果没有下标，返回整个数组的类型（ArrayList<X> 等）
     }
 
 }

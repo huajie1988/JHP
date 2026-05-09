@@ -118,7 +118,7 @@ InstanceOf : 'instanceof';
 InsteadOf : 'insteadof';
 Int8Cast : 'int8';
 Int16Cast : 'int16';
-Int64Type : 'int64';
+Int64Type : 'int64' | 'long';
 IntType : 'int' 'eger'?;
 Interface : 'interface';
 IsSet : 'isset';

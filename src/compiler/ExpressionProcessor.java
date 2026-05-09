@@ -189,4 +189,8 @@ public class ExpressionProcessor {
     public void fatalError(String message) throws JhpCompilationException {
         throw new JhpCompilationException(message);
     }
+
+    public String inferTypeFromChain(JhpParser.ChainContext chain) {
+        return inferType.inferTypeFromChain(chain);
+    }
 }

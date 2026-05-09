@@ -158,7 +158,7 @@ $map3 = [
 // echo $map["name"], "\n"; // "Alice"
 // echo $map["age"], "\n"; // 30
 // echo $array[0][1], "\n"; // 2
-// $n = $array[1]; // 6
+$n = $array[1]; // 6
 // $m = $map3["person1"]; // "Alice"
 
 // $array[0][1] = 10;
@@ -193,9 +193,10 @@ foreach ($array as $row) {
     }
 }
 func2();
-// foreach ($map3 as $personInfo) {
+foreach ($map3 as $personInfo) {
     
-//     foreach ($personInfo as $infoValue) {
-//         echo "  ",  $infoValue, "\n";
-//     }
-// }
+    foreach ($personInfo as $infoValue) {
+        echo  "aaaa\n";
+        echo "  ",  $infoValue, "\n";
+    }
+}

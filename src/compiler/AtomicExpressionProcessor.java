@@ -23,6 +23,10 @@ public class AtomicExpressionProcessor {
 
     // 直接返回文本
     public String generateScalar(JhpParser.ScalarExpressionContext ctx, int indentLevel) { 
+        if (ctx.constant() != null && ctx.constant().classConstant() != null) {
+            // 类常量访问，如 self::PI、User::PI
+            return translateClassConstant(ctx.constant().classConstant(), indentLevel);
+        }
         return ctx.getText();
     }        
     public String generateChain(JhpParser.ChainContext chain, int indent) {
@@ -100,10 +104,43 @@ public class AtomicExpressionProcessor {
                     }
                 }
             }
-
             // 统一处理后续的 memberAccess（-> 调用链）
+            // 需要维护当前表达式的类型，以便生成高效的 .get() 调用
+            String currentType = exprProc.getVariableTypes(result);  // result 现在是基础变量名（如 this 或 $var）
             for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+                // 获取访问器名称（不含下标）
+                String accessor = getAccessorName(ma);
+
+                // 如果是属性访问（无参数），尝试获取属性类型并更新 currentType
+                if (ma.actualArguments() == null) {
+                    String propType = exprProc.getVariableTypes(accessor);  // 从符号表获取属性类型
+                    if (!"Object".equals(propType)) {
+                        currentType = propType;   // 用于后续下标处理
+                    } else {
+                        currentType = "Object";   // 无法确定，降级
+                    }
+                } else {
+                    // 方法调用，无法静态确定返回类型，暂用 Object
+                    currentType = "Object";
+                }
+
+                // 先拼接属性/方法名（不带下标）
                 result += generateMemberAccess(ma, indent);
+
+                // 再处理该成员访问自带的方括号下标
+                List<String> maSubscripts = extractMemberSubscripts(ma);
+                for (String index : maSubscripts) {
+                    if (JhpUtils.isListType(currentType)) {
+                        result += ".get(" + index + ")";
+                        currentType = JhpUtils.extractElementType(currentType); // 更新为元素类型
+                    } else if (JhpUtils.isMapType(currentType)) {
+                        result += ".get(" + index + ")";
+                        currentType = JhpUtils.extractElementType(currentType); // 更新为值类型
+                    } else {
+                        result = "runtime.JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                        currentType = "Object";
+                    }
+                }
             }
             return result;
         }
@@ -352,16 +389,12 @@ public class AtomicExpressionProcessor {
 
     /** 处理 memberAccess：将其转换为 .methodName(args) */
     private String generateMemberAccess(JhpParser.MemberAccessContext ctx, int indent) {
-        String methodName = ctx.keyedFieldName().getText(); // 可能需要处理复杂 keyedFieldName
-        // 处理实际参数
+        String accessor = getAccessorName(ctx);
+        String base = "." + accessor;
         if (ctx.actualArguments() != null) {
-        // 有括号，是方法调用
-        String args = generateArguments(ctx.actualArguments(), indent);
-        return "." + methodName + "(" + args + ")";
-        } else {
-            // 无括号，是属性访问
-            return "." + methodName;
+            base += "(" + generateArguments(ctx.actualArguments(), indent) + ")";
         }
+        return base;
     }
 
     private String generateConstant(JhpParser.ConstantContext c) {
@@ -465,6 +498,77 @@ public class AtomicExpressionProcessor {
         // 5. 其他未知情况
         exprProc.fatalError("Unknown constant initializer: " + ctx.getText());
         return "null /* ERROR */";
+    }
+
+    // 提取无下标的成员名
+    private String getAccessorName(JhpParser.MemberAccessContext ma) {
+        if (ma.keyedFieldName() != null) {
+            JhpParser.KeyedFieldNameContext kfn = ma.keyedFieldName();
+            if (kfn.keyedSimpleFieldName() != null) {
+                JhpParser.KeyedSimpleFieldNameContext ksn = kfn.keyedSimpleFieldName();
+                if (ksn.identifier() != null) {
+                    return ksn.identifier().getText();
+                }
+            }
+        }
+        // fallback
+        return ma.keyedFieldName().getText().replaceAll("\\[.*?\\]", "");
+    }
+
+    // 在 AtomicExpressionProcessor 中新增
+    private List<String> extractMemberSubscripts(JhpParser.MemberAccessContext ma) {
+         List<String> indices = new ArrayList<>();
+        if (ma.keyedFieldName() != null && ma.keyedFieldName().keyedSimpleFieldName() != null) {
+            for (JhpParser.SquareCurlyExpressionContext sq : ma.keyedFieldName().keyedSimpleFieldName().squareCurlyExpression()) {
+                if (sq.expression() != null) {
+                    indices.add(exprProc.generateExpression(sq.expression(), 0));
+                }
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * 将 PHP 的类常量（self::CONST、User::CONST）翻译为 Java 的 ClassName.CONST
+     */
+    private String translateClassConstant(JhpParser.ClassConstantContext cc, int indent) {
+        // 左侧可能是 Class/Parent_ 关键字，或者是具体的类名 / self / parent 等
+        String left;
+        if (cc.Class() != null) {
+            left = "this";               // PHP 的 class::CONST，通常等价于 self::CONST
+        } else if (cc.Parent_() != null) {
+            left = "super";              // 父类的常量
+        } else if (cc.qualifiedStaticTypeRef() != null) {
+            left = JhpUtils.qualifiedStaticTypeRefToJava(cc.qualifiedStaticTypeRef());
+        } else if (cc.keyedVariable() != null && !cc.keyedVariable().isEmpty()) {
+            // 动态类名，暂不支持，保留原样
+            return cc.getText();
+        } else if (cc.string() != null) {
+            // 字符串做类名，保留原样
+            return cc.getText();
+        } else {
+            return cc.getText();
+        }
+
+        // 将 self/static 翻译为当前类名（常量必须在静态上下文中访问，所以不用 this）
+        if ("this".equals(left)) {
+            String curClass = exprProc.getCurrentClassName();
+            if (curClass != null && !curClass.isEmpty()) {
+                left = curClass;
+            }
+        }
+
+        // 右侧：常量名
+        String right;
+        if (cc.identifier() != null) {
+            right = cc.identifier().getText();
+        } else if (cc.keyedVariable() != null && !cc.keyedVariable().isEmpty()) {
+            right = cc.keyedVariable(0).getText().replace("$", ""); // 动态常量名
+        } else {
+            return cc.getText();
+        }
+
+        return left + "." + right;
     }
 
 }

@@ -16,6 +16,9 @@ public final class JhpUtils {
             case "int":
             case "integer":
                 return "Integer";
+            case "long":
+            case "int64":
+                return "Long";
             case "float":
             case "double":
                 return "Double";
