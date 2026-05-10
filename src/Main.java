@@ -76,7 +76,7 @@ public class Main {
         System.out.println("Generated " + javaFile);
 
         // 3. 编译生成的 Java 文件
-        if(mode == 1 || mode == 2) {
+        if(mode == 1 || mode == 2 || mode == 4) {
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
             int compileResult = compiler.run(null, null, null, javaFile);
             if (compileResult != 0) {

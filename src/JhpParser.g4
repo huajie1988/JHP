@@ -401,7 +401,7 @@ expression
     | Label                                                       # ScalarExpression
     // | BackQuoteString                                             # BackQuoteStringExpression
     | parentheses                                                 # ParenthesisExpression
-    // | lambdaFunctionExpr                                          # LambdaFunctionExpression
+    | lambdaFunctionExpr                                          # LambdaFunctionExpression
     | matchExpr                                                   # MatchExpression
     | <assoc = right> expression op = '**' expression             # ExponentiationExpression
     | expression InstanceOf typeRef                               # InstanceOfExpression
@@ -449,11 +449,12 @@ keyedDestructItem
     : (expression '=>')? chain
     ;
 
-//// 箭头函数 fn() => expr (PHP 7.4+)
-// lambdaFunctionExpr
-//    : Static? Function_ '&'? '(' formalParameterList ')' lambdaFunctionUseVars? (':' typeHint)? blockStatement
-//    | LambdaFn '(' formalParameterList ')' '=>' expression
-//    ;
+// 箭头函数 fn() => expr (PHP 7.4+)
+ lambdaFunctionExpr
+    :Function_ '(' formalParameterList ')' (':' typeHint)? blockStatement
+    // : Static? Function_ '&'? '(' formalParameterList ')' lambdaFunctionUseVars? (':' typeHint)? blockStatement
+    | LambdaFn '(' formalParameterList ')' '=>' expression
+    ;
 
 matchExpr
     : Match_ '(' expression ')' OpenCurlyBracket matchItem (',' matchItem)* ','? CloseCurlyBracket

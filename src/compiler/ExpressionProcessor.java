@@ -129,6 +129,11 @@ public class ExpressionProcessor {
             return binary.generateConditionalExpression((JhpParser.ConditionalExpressionContext) ctx, indent);
         }
 
+        // lambda 表达式
+        if (ctx instanceof JhpParser.LambdaFunctionExpressionContext) {
+            return atomic.generateLambda((JhpParser.LambdaFunctionExpressionContext) ctx, indent);
+        }
+
         // 未支持的类型则 fallback
         System.err.println("Unsupported expression: " + ctx.getClass().getSimpleName());
         return ctx.getText();

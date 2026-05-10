@@ -3,6 +3,11 @@ namespace App\Model;
 
 import java\util\*;  // 翻译为 import java.util.*;
 include runtime\JhpRuntime;
+
+//interface UserService extends UserServiceInterface1, UserServiceInterface2{
+//    public function getUserById(int $id): User;
+//}
+
 /**
  * 用户测试类
  */
@@ -81,7 +86,7 @@ class User {
 
         // 测试 for 循环
         for ($i = 0; $i < count($this->friendIds); $i++) {
-            
+
             $fid = $this->friendIds[$i];
             echo "Friend[", $i, "] = ", $fid, "\n";
         }
@@ -106,7 +111,7 @@ class User {
     }
 
     public function display(): void {
-        
+
         $tagsStr = (string) join(" | ", $this->tags);
         $namesList = split(",", $this->names);
         echo "User: ", $this->name, " (ID: ", $this->id, ")\n";

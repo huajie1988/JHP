@@ -247,9 +247,17 @@ public class VariableProcessor {
         out.printf("%s %s= %s;%n", leftVar, javaOp, rightCode);
     }
 
-    // ---------- 以下为私有辅助方法 ----------
+    public String extractTypeFromAttributes() {
+        if (!currentAttributes.isEmpty()) {
+            String type = extractTypeFromAttributes(currentAttributes);
+            currentAttributes.clear();
+            return type;
+        }
+        return null;
+    }
 
-    private String extractTypeFromAttributes(List<JhpParser.AttributeGroupContext> attrs) {
+
+    public String extractTypeFromAttributes(List<JhpParser.AttributeGroupContext> attrs) {
         for (JhpParser.AttributeGroupContext group : attrs) {
             for (JhpParser.AttributeContext attr : group.attribute()) {
                 System.err.println("DEBUG: attribute = " + attr.getText());

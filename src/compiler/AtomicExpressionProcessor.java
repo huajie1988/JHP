@@ -269,24 +269,38 @@ public class AtomicExpressionProcessor {
     private String generateFunctionCall(JhpParser.ChainContext chain, int indent) {
         JhpParser.FunctionCallContext funcCall = chain.chainOrigin().functionCall();
         JhpParser.FunctionCallNameContext fcn = funcCall.functionCallName();
-        
-        // 解析方法名（可能包含完整限定路径）
-        String methodPath = extractFunctionName(fcn, indent);
         String args = generateArguments(funcCall.actualArguments(), indent);
-        
-        // 检查是否是运行时内置函数
-        if (isRuntimeFunction(methodPath)) {
-            methodPath = "JhpRuntime." + methodPath;   // 重定向到运行时类
+
+        String methodPath;
+        if (fcn.chainBase() != null) {
+            // 闭包变量调用，如 $func() → func.apply() 或 run()
+            String varName = fcn.chainBase().getText().replace("$", "").trim();
+            // 查询变量类型
+            String varType = exprProc.getVariableTypes(varName);
+            String methodName = getFunctionalMethodName(varType);
+            methodPath = varName + "." + methodName;
+        } else {
+            methodPath = extractFunctionName(fcn, indent);
         }
 
-        // 基础调用：methodPath(args)
         StringBuilder result = new StringBuilder(methodPath).append("(").append(args).append(")");
-        
-        // 处理后续的 memberAccess（-> 调用链）
-        // for (JhpParser.MemberAccessContext memberAccess : chain.memberAccess()) {
-        //     result.append(generateMemberAccess(memberAccess, indent));
-        // }
+        for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+            result.append(generateMemberAccess(ma, indent));
+        }
         return result.toString();
+    }
+
+    /**
+     * 根据函数式接口类型返回对应的抽象方法名
+     */
+    private String getFunctionalMethodName(String type) {
+        if (type == null) return "apply";
+        if (type.startsWith("Function<")) return "apply";
+        if (type.startsWith("Consumer<")) return "accept";
+        if (type.startsWith("Supplier<")) return "get";
+        if (type.equals("Runnable")) return "run";
+        // 其他未知接口默认使用 apply
+        return "apply";
     }
 
     /**
@@ -376,8 +390,17 @@ public class AtomicExpressionProcessor {
             // 动态函数名，返回表达式
             return "(" + exprProc.generateExpression(fcn.parentheses().expression(), indent) + ")";
         } else if (fcn.chainBase() != null) {
-            // $var() 形式，暂不支持，返回变量名
-            return JhpUtils.getVarNameFromChain(/* 需要 chain 上下文，但这里没有 */ null);
+            // $var() 调用
+            JhpParser.ChainBaseContext base = fcn.chainBase();
+            if (base.keyedVariable() != null && !base.keyedVariable().isEmpty()) {
+                String varText = base.keyedVariable().get(0).getText();
+                if (varText.startsWith("$")) {
+                    varText = varText.substring(1);
+                }
+                return varText;
+            }
+            // 若无法提取，直接回退到文本
+            return fcn.chainBase().getText();
         }
         return fcn.getText(); // 回退
     }
@@ -584,6 +607,22 @@ public class AtomicExpressionProcessor {
         }
 
         return left + "." + right;
+    }
+
+    public String generateLambda(JhpParser.LambdaFunctionExpressionContext ctx, int indent) {
+        JhpParser.LambdaFunctionExprContext lambda = ctx.lambdaFunctionExpr();
+        List<String> paramNames = new ArrayList<>();
+        if (lambda.formalParameterList() != null) {
+            for (JhpParser.FormalParameterContext p : lambda.formalParameterList().formalParameter()) {
+                paramNames.add(p.variableInitializer().VarName().getText().substring(1));
+            }
+        }
+        String body = exprProc.generateExpression(lambda.expression(), indent);
+        String params;
+        if (paramNames.isEmpty()) params = "()";
+        else if (paramNames.size() == 1) params = paramNames.get(0);
+        else params = "(" + String.join(", ", paramNames) + ")";
+        return params + " -> " + body;
     }
 
 }

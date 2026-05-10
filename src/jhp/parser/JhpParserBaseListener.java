@@ -1193,6 +1193,18 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCoalesceExpression(JhpParser.CoalesceExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1260,6 +1272,18 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitKeyedDestructItem(JhpParser.KeyedDestructItemContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

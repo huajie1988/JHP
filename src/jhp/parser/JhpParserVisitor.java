@@ -629,6 +629,13 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArrayDestructExpression(JhpParser.ArrayDestructExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code LambdaFunctionExpression}
+	 * labeled alternative in {@link JhpParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code CoalesceExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -665,6 +672,12 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitKeyedDestructItem(JhpParser.KeyedDestructItemContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link JhpParser#matchExpr}.
 	 * @param ctx the parse tree

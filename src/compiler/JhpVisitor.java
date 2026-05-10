@@ -52,18 +52,22 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             visit(ctx.namespaceDeclaration()); // 生成 package xxx;
         }
 
+
+        // 添加默认 import
+        out.println("import runtime.JhpRuntime;");
+
         // 输出用户自定义的 import
         for (JhpParser.ImportStatementContext imp : ctx.importStatement()) {
             visit(imp);
         }
 
-        if(mode == 3) {
+        if(mode == 3 || mode == 4) {
              clazzProcess(ctx);
         }else if(mode == 1 || mode == 2) {
             
             // 输出默认的 import
             out.println("import java.util.*;");
-            out.println("import runtime.JhpRuntime;");
+//            out.println("import runtime.JhpRuntime;");
             out.println("public class " + mainClassName + " {");
             indentLevel++;
 
@@ -101,10 +105,18 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     @Override
     public Void visitExpressionStatement(JhpParser.ExpressionStatementContext ctx) {
         if (ctx.expression() instanceof JhpParser.AssignmentExpressionContext) {
-            varProc.handleAssignment(
-                (JhpParser.AssignmentExpressionContext) ctx.expression(),
-                indentLevel
-            );
+            JhpParser.AssignmentExpressionContext assignCtx = (JhpParser.AssignmentExpressionContext) ctx.expression();
+
+            if (assignCtx.expression() instanceof JhpParser.LambdaFunctionExpressionContext) {
+                JhpParser.LambdaFunctionExpressionContext lambdaCtx = (JhpParser.LambdaFunctionExpressionContext) assignCtx.expression();
+                if (lambdaCtx.lambdaFunctionExpr().blockStatement() != null) {
+                    ClosureProcessor closureProc = new ClosureProcessor(varProc, exprProc, this ,out, indentLevel);
+                    closureProc.handleMultiLineClosureAssign(assignCtx, lambdaCtx);
+                    return null;
+                }
+            }
+
+            varProc.handleAssignment(assignCtx, indentLevel);
         }else {
             String exprCode = exprProc.generateExpression(ctx.expression(), indentLevel);
             JhpUtils.printIndent(out, indentLevel);
@@ -471,18 +483,30 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         } else if (ctx.Private() != null) {
             modifiers += "private ";
         } else {
-            modifiers += "public "; // PHP 默认 public
+            //其他不写
+            modifiers += "";
         }
 
         if (ctx.modifier() != null) {
             modifiers += ctx.modifier().getText() + " ";
         }
 
-        // extends
         String extendsClause = "";
-        if (ctx.Extends() != null && ctx.qualifiedStaticTypeRef() != null) {
-            extendsClause = " extends " + JhpUtils.phpPackageToJavaPackage(ctx.qualifiedStaticTypeRef().getText());
+        // 接口多继承，类单继承
+        if(isInterface){
+            if(ctx.Extends() != null && ctx.interfaceList() != null){
+                List<String> ifaces = new ArrayList<>();
+                for (JhpParser.QualifiedStaticTypeRefContext iface : ctx.interfaceList().qualifiedStaticTypeRef()){
+                    ifaces.add(JhpUtils.phpPackageToJavaPackage(iface.getText()));
+                }
+                extendsClause = " extends " + String.join(", ", ifaces);
+            }
+        }else {
+            if (ctx.Extends() != null && ctx.qualifiedStaticTypeRef() != null) {
+                extendsClause = " extends " + JhpUtils.phpPackageToJavaPackage(ctx.qualifiedStaticTypeRef().getText());
+            }
         }
+
         // implements
         String implementsClause = "";
         if (ctx.Implements() != null && ctx.interfaceList() != null) {
@@ -841,27 +865,13 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     }
 
     private void clazzProcess(JhpParser.PhpFileContext ctx) {
-        // 找出唯一的 classDeclaration
-        JhpParser.ClassDeclarationContext classCtx = null;
+
+        // 直接翻译所有顶层语句，不做任何包装
         for (ParseTree child : ctx.children) {
-            if (child instanceof JhpParser.TopStatementContext topCtx) {
-                // System.err.println("DEBUG: Visiting top-level statement with text: " + topCtx.getText());
-                // System.err.println("DEBUG: Contains namespace declaration? " + (topCtx.namespaceDeclaration() != null));
-                if (topCtx.classDeclaration() != null) {
-                    if (classCtx != null) {
-                        System.err.println("Error: mode 3 expects exactly one class in the file");
-                        return;
-                    }
-                    classCtx = topCtx.classDeclaration();
-                }
+            if (child instanceof JhpParser.TopStatementContext) {
+                visit(child);
             }
         }
-        if (classCtx == null) {
-            System.err.println("Error: mode 3 requires a class definition");
-            return;
-        }
-
-        visit(classCtx);
     }
 
 }

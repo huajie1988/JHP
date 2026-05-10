@@ -363,4 +363,17 @@ public final class JhpUtils {
         return sb.toString();
     }
 
+    public static String getFunctionalMethodSignature(String interfaceName, String returnType, String paramStr) {
+        if (interfaceName.startsWith("Function<")) {
+            return returnType + " apply(" + paramStr + ")";
+        } else if (interfaceName.startsWith("Consumer<")) {
+            return "void accept(" + paramStr + ")";
+        } else if (interfaceName.startsWith("Supplier<")) {
+            return returnType + " get()";
+        } else if (interfaceName.equals("Runnable")) {
+            return "void run()";
+        } else {
+            return returnType + " apply(" + paramStr + ")"; // 默认
+        }
+    }
 }

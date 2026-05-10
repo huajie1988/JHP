@@ -143,6 +143,8 @@ public class InferType {
             } else {
                 return JhpUtils.mapJhpTypeToJavaType(castCtx.castOperation().getText());
             }      // 转换为 Java 包装类型
+        }else if (ctx instanceof JhpParser.LambdaFunctionExpressionContext) {
+            return "Object"; // 类型实际由 #[Type] 属性确定
         }
         return "Object";
     }

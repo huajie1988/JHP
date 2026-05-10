@@ -1048,6 +1048,18 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitArrayDestructExpression(JhpParser.ArrayDestructExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code LambdaFunctionExpression}
+	 * labeled alternative in {@link JhpParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code LambdaFunctionExpression}
+	 * labeled alternative in {@link JhpParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitLambdaFunctionExpression(JhpParser.LambdaFunctionExpressionContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code CoalesceExpression}
 	 * labeled alternative in {@link JhpParser#expression}.
 	 * @param ctx the parse tree
@@ -1109,6 +1121,16 @@ public interface JhpParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitKeyedDestructItem(JhpParser.KeyedDestructItemContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JhpParser#lambdaFunctionExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitLambdaFunctionExpr(JhpParser.LambdaFunctionExprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link JhpParser#matchExpr}.
 	 * @param ctx the parse tree
