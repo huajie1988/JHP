@@ -330,6 +330,10 @@ public final class JhpUtils {
         return methodName.equals("__construct") || methodName.equals("Constructor");
     }
 
+    public static boolean isMain(String methodName){
+        return methodName.equalsIgnoreCase("main");
+    }
+
     // JhpUtils.java 新增方法
     public static String convertExplicitTypeString(String typeString) {
         if (typeString == null || typeString.isEmpty()) return "Object";

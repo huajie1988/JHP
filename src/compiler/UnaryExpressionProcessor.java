@@ -3,6 +3,8 @@ package compiler;
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UnaryExpressionProcessor {
     private final ExpressionProcessor exprProc;
@@ -14,15 +16,34 @@ public class UnaryExpressionProcessor {
         this.out = out;
     }
     public String generateCast(JhpParser.CastExpressionContext ctx, int indent) {
-         String javaType;
+        JhpParser.ExpressionContext inner = ctx.expression();
+
+        // 检查内部是否为闭包
+        if (inner instanceof JhpParser.LambdaFunctionExpressionContext) {
+            JhpParser.LambdaFunctionExpressionContext lambdaCtx = (JhpParser.LambdaFunctionExpressionContext) inner;
+            JhpParser.LambdaFunctionExprContext lambda = lambdaCtx.lambdaFunctionExpr();
+
+            String targetType = mapCastTargetType(ctx.castOperation());
+
+            if (lambda.blockStatement() != null) {
+                // 多行闭包 → 生成匿名内部类
+                return generateAnonymousClassForCast(lambda, targetType, indent);
+            } else {
+                // 单行闭包 → lambda 表达式（目标类型信息被 lambda 自身携带，忽略 cast）
+                return generateLambda(lambda, indent);
+            }
+        }
+
+        // 普通类型转换
+        String castType = ctx.castOperation().getText();
+        String javaType;
         if (ctx.castOperation().qualifiedStaticTypeRef() != null) {
             javaType = JhpUtils.qualifiedStaticTypeRefToJava(ctx.castOperation().qualifiedStaticTypeRef());
         } else {
-            String castType = ctx.castOperation().getText();
             javaType = JhpUtils.mapJhpTypeToJavaType(castType);
         }
-        String inner = exprProc.generateExpression(ctx.expression(), indent);
-        return "((" + javaType + ") " + inner + ")";
+        String innerCode = exprProc.generateExpression(inner, indent);
+        return "((" + javaType + ") " + innerCode + ")";
     }
 
     public String generateUnaryOp(JhpParser.UnaryOperatorExpressionContext ctx, int indent) {
@@ -60,5 +81,57 @@ public class UnaryExpressionProcessor {
         }
         
         return "new " + javaType + "(" + args + ")";
+    }
+
+    private String mapCastTargetType(JhpParser.CastOperationContext castOp) {
+        if (castOp.qualifiedStaticTypeRef() != null) {
+            return JhpUtils.qualifiedStaticTypeRefToJava(castOp.qualifiedStaticTypeRef());
+        }
+        return JhpUtils.mapJhpTypeToJavaType(castOp.getText());
+    }
+
+    private String generateAnonymousClassForCast(JhpParser.LambdaFunctionExprContext ctx, String targetType, int indent) {
+        // 提取参数和返回类型（用于生成方法签名）
+        List<String> paramStrs = new ArrayList<>();
+        if (ctx.formalParameterList() != null) {
+            for (JhpParser.FormalParameterContext p : ctx.formalParameterList().formalParameter()) {
+                String paramType = "Object";
+                if (p.typeHint() != null) paramType = JhpUtils.mapTypeHint(p.typeHint());
+                String paramName = p.variableInitializer().VarName().getText().substring(1);
+                paramStrs.add(paramType + " " + paramName);
+            }
+        }
+        String paramsStr = String.join(", ", paramStrs);
+        String returnType = JhpUtils.mapTypeHint(ctx.typeHint());
+
+        // 捕获方法体
+        String bodyStr = exprProc.captureBlock(ctx.blockStatement(), indent + 1);
+
+        // 构建匿名内部类
+        StringBuilder sb = new StringBuilder();
+        sb.append("new ").append(targetType).append("() {\n");
+        sb.append(JhpUtils.indentStr(indent + 1)).append("@Override\n");
+        String methodSig = JhpUtils.getFunctionalMethodSignature(targetType, returnType, paramsStr);
+        sb.append(JhpUtils.indentStr(indent + 1)).append("public ").append(methodSig).append(" {\n");
+        sb.append(bodyStr);
+        sb.append(JhpUtils.indentStr(indent + 1)).append("}\n");
+        sb.append(JhpUtils.indentStr(indent)).append("}");
+        return sb.toString();
+    }
+
+    // 单行闭包的 lambda 生成（保持在 Atomic 也可，移到 Unary 更集中）
+    private String generateLambda(JhpParser.LambdaFunctionExprContext ctx, int indent) {
+        List<String> paramNames = new ArrayList<>();
+        if (ctx.formalParameterList() != null) {
+            for (JhpParser.FormalParameterContext p : ctx.formalParameterList().formalParameter()) {
+                paramNames.add(p.variableInitializer().VarName().getText().substring(1));
+            }
+        }
+        String body = exprProc.generateExpression(ctx.expression(), indent);
+        String params;
+        if (paramNames.isEmpty()) params = "()";
+        else if (paramNames.size() == 1) params = paramNames.get(0);
+        else params = "(" + String.join(", ", paramNames) + ")";
+        return params + " -> " + body;
     }
 }

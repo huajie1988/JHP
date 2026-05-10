@@ -402,6 +402,8 @@ expression
     // | BackQuoteString                                             # BackQuoteStringExpression
     | parentheses                                                 # ParenthesisExpression
     | lambdaFunctionExpr                                          # LambdaFunctionExpression
+    //| Function_ '(' formalParameterList ')' ':' typeHint blockStatement    # MultiLineClosureExpression
+    //| LambdaFn '(' formalParameterList ')' '=>' expression                # SingleLineClosureExpression
     | matchExpr                                                   # MatchExpression
     | <assoc = right> expression op = '**' expression             # ExponentiationExpression
     | expression InstanceOf typeRef                               # InstanceOfExpression

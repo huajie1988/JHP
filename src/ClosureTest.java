@@ -2,8 +2,7 @@ import runtime.JhpRuntime;
 import java.util.*;
 import java.util.function.*;
 class ClosureTest {
-    public static void main(String[] args)
-    {
+    public static void main(String[] args)    {
         Function< Integer, Integer > timesTwo = x -> x * 2;
         JhpRuntime.echo("TimesTwo(5): ", timesTwo.apply(5), "\n");
         Function< String, String > greet = name -> "Hello, " + String.valueOf(name);
@@ -53,6 +52,12 @@ class TaskRunner {
     {
         JhpRuntime.echo("Executing task...\n");
         this.task();
+    }
+    public void echoList(List<String> list) 
+    {
+        for (String item : list) {
+            JhpRuntime.echo("Item: ", item, "\n");
+        }
     }
     public void task() 
     {

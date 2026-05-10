@@ -36,6 +36,11 @@ class ClosureTest {
         };
         $runnable();  // 调用 run
 
+//        $thread = new Thread((Runnable) function() : void {
+//            echo "Number is: " . $num;
+//        });
+//        $thread->start();
+
         #[Type("Function<: int, string :>")]
         $intToString = function(int $num) : string {
             $prefix = "Number: ";
@@ -69,6 +74,12 @@ class TaskRunner {
     public function execute(): void {
         echo "Executing task...\n";
         $this->task();
+    }
+
+    public function echoList(List<: string :> $list): void {
+        foreach ($list as $item) {
+            echo "Item: ", $item, "\n";
+        }
     }
 
     public function task(): void {

@@ -31,7 +31,6 @@ public class ClosureProcessor {
                                              JhpParser.LambdaFunctionExpressionContext lambdaCtx) {
         JhpParser.LambdaFunctionExprContext lambda = lambdaCtx.lambdaFunctionExpr();
         String leftVar = JhpUtils.getAssignableVarName(assignCtx.assignable());
-
         // 参数列表
         List<String> paramStrs = new ArrayList<>();
         for (JhpParser.FormalParameterContext p : lambda.formalParameterList().formalParameter()) {

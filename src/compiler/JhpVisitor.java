@@ -31,6 +31,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         }
         this.varProc = new VariableProcessor(out);
         this.exprProc = new ExpressionProcessor(varProc, out);
+        this.exprProc.setVisitor(this);
         this.varProc.setExprProcessor(exprProc);  // 解决循环依赖
     }
 
@@ -106,16 +107,19 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     public Void visitExpressionStatement(JhpParser.ExpressionStatementContext ctx) {
         if (ctx.expression() instanceof JhpParser.AssignmentExpressionContext) {
             JhpParser.AssignmentExpressionContext assignCtx = (JhpParser.AssignmentExpressionContext) ctx.expression();
+            JhpParser.ExpressionContext right = assignCtx.expression();
 
-            if (assignCtx.expression() instanceof JhpParser.LambdaFunctionExpressionContext) {
-                JhpParser.LambdaFunctionExpressionContext lambdaCtx = (JhpParser.LambdaFunctionExpressionContext) assignCtx.expression();
+            // 多行闭包
+            if (right instanceof JhpParser.LambdaFunctionExpressionContext) {
+                JhpParser.LambdaFunctionExpressionContext lambdaCtx = (JhpParser.LambdaFunctionExpressionContext) right;
+                // 判断是否多行闭包（有 blockStatement）
                 if (lambdaCtx.lambdaFunctionExpr().blockStatement() != null) {
-                    ClosureProcessor closureProc = new ClosureProcessor(varProc, exprProc, this ,out, indentLevel);
+                    ClosureProcessor closureProc = new ClosureProcessor(varProc, exprProc, this, out, indentLevel);
                     closureProc.handleMultiLineClosureAssign(assignCtx, lambdaCtx);
                     return null;
                 }
             }
-
+            // 单行闭包：走正常赋值处理 (VariableProcessor)
             varProc.handleAssignment(assignCtx, indentLevel);
         }else {
             String exprCode = exprProc.generateExpression(ctx.expression(), indentLevel);
@@ -680,9 +684,11 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         String methodName = stmt.identifier().getText();
         boolean isInterface = ctx.Interface() != null;
         boolean isConstructor = JhpUtils.isConstructor(methodName);
+        boolean isMain = JhpUtils.isMain(methodName);
         if (isConstructor) {
             methodName = varProc.getCurrentClassName();   // 需要能获取到当前类名
         }
+
         // 处理参数列表，并将参数注册到符号表
         List<String> paramStrs = new ArrayList<>();
         if (stmt.formalParameterList() != null) {
@@ -729,11 +735,31 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                 // 具体方法
                 JhpUtils.printIndent(out, indentLevel);
                 if(isInterface){
+                    //接口只保留函数定义
                     System.err.println("Warning: method " + methodName + " is declared in an interface but has a body. Removing method body.");
                     out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
                 }else{
-                    out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
+                    if(isMain){
+                        // main 方法硬编码为 public static void main(String[] args)
+                        String mainArgName = "args"; // 默认
+                        if (!paramStrs.isEmpty()) {
+                            // 从参数列表中提取变量名（例如 "String args"）
+                            String[] parts = paramStrs.get(0).split(" ");
+                            if (parts.length >= 2) {
+                                mainArgName = parts[parts.length - 1];
+                            }
+                        }
+                        out.printf("public static void main(String[] %s)", mainArgName);
+                        // 注册 args 为 String[] 类型（这里简单处理，因为后面不会再用到类型）
+                        varProc.setVariableType(mainArgName, "String[]");
+                    }else{
+                        //正常方法
+                        out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
+                    }
                 }
+
+                
+
                 // indentLevel++;
                 // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
                 // 处理构造器调用 baseCtorCall（仅限于构造方法）

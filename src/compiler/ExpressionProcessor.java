@@ -13,6 +13,8 @@ public class ExpressionProcessor {
     private final VariableProcessor varProc; // 用于类型推断
     private final PrintWriter out;
     private final InferType inferType;
+    //闭包函数支持使用
+    private JhpVisitor visitor;
 
     public ExpressionProcessor(VariableProcessor varProc, PrintWriter out) {
         this.atomic = new AtomicExpressionProcessor(this, out);
@@ -131,7 +133,14 @@ public class ExpressionProcessor {
 
         // lambda 表达式
         if (ctx instanceof JhpParser.LambdaFunctionExpressionContext) {
-            return atomic.generateLambda((JhpParser.LambdaFunctionExpressionContext) ctx, indent);
+            JhpParser.LambdaFunctionExpressionContext lambdaCtx = (JhpParser.LambdaFunctionExpressionContext) ctx;
+            JhpParser.LambdaFunctionExprContext lambda = lambdaCtx.lambdaFunctionExpr();
+            if (lambda.expression() != null) {  // 单行
+                return atomic.generateLambda(lambdaCtx, indent);
+            } else {
+                // 多行不应该出现在普通表达式中，返回占位符或抛错
+                return "/* Multi-line closure not allowed in expression context */";
+            }
         }
 
         // 未支持的类型则 fallback
@@ -197,5 +206,18 @@ public class ExpressionProcessor {
 
     public String inferTypeFromChain(JhpParser.ChainContext chain) {
         return inferType.inferTypeFromChain(chain);
+    }
+
+    public String captureBlock(JhpParser.BlockStatementContext block, int indent) {
+        java.io.StringWriter sw = new java.io.StringWriter();
+        PrintWriter tmpOut = new PrintWriter(sw);
+        JhpVisitor tmpVisitor = new JhpVisitor(tmpOut, 0, ""); // mode=0 避免额外输出
+        tmpVisitor.visit(block);
+        tmpOut.flush();
+        return sw.toString();
+    }
+
+    public void setVisitor(JhpVisitor visitor) {
+        this.visitor = visitor;
     }
 }
