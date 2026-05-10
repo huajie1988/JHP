@@ -900,4 +900,12 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         }
     }
 
+    public void setIndentLevel(int indentLevel){
+        this.indentLevel = indentLevel;
+    }
+
+    public int getIndentLevel(){
+        return indentLevel;
+    }
+
 }

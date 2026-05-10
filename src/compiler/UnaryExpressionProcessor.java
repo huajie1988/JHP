@@ -112,9 +112,9 @@ public class UnaryExpressionProcessor {
         sb.append("new ").append(targetType).append("() {\n");
         sb.append(JhpUtils.indentStr(indent + 1)).append("@Override\n");
         String methodSig = JhpUtils.getFunctionalMethodSignature(targetType, returnType, paramsStr);
-        sb.append(JhpUtils.indentStr(indent + 1)).append("public ").append(methodSig).append(" {\n");
+        sb.append(JhpUtils.indentStr(indent + 1)).append("public ").append(methodSig).append(" \n");
         sb.append(bodyStr);
-        sb.append(JhpUtils.indentStr(indent + 1)).append("}\n");
+        sb.append(JhpUtils.indentStr(indent + 1)).append("\n");
         sb.append(JhpUtils.indentStr(indent)).append("}");
         return sb.toString();
     }

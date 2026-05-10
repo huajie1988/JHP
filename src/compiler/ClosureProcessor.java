@@ -53,6 +53,9 @@ public class ClosureProcessor {
         }
 
         // 输出匿名内部类
+        int baseIndent = visitor.getIndentLevel();
+
+        // 输出匿名内部类
         if (!varProc.isVariableDeclared(leftVar)) {
             varProc.setVariableType(leftVar, targetInterface);
             JhpUtils.printIndent(out, indentLevel);
@@ -61,22 +64,27 @@ public class ClosureProcessor {
             JhpUtils.printIndent(out, indentLevel);
             out.printf("%s = new %s() {%n", leftVar, targetInterface);
         }
-        indentLevel++;
+
+        visitor.setIndentLevel(baseIndent + 1);
+        int methodIndent = visitor.getIndentLevel();
+
 
         // 方法签名
         String methodSig = JhpUtils.getFunctionalMethodSignature(targetInterface, returnType, paramsStr);
-        JhpUtils.printIndent(out, indentLevel);
+        JhpUtils.printIndent(out, methodIndent);
         out.println("@Override");
-        JhpUtils.printIndent(out, indentLevel);
-        out.println("public " + methodSig + " {");
-        indentLevel++;
-        visitor.visit(lambda.blockStatement());
-        indentLevel--;
-        JhpUtils.printIndent(out, indentLevel);
-        out.println("}");
+        JhpUtils.printIndent(out, methodIndent);
+        out.println("public " + methodSig + " ");
 
-        indentLevel--;
-        JhpUtils.printIndent(out, indentLevel);
+
+        visitor.setIndentLevel(methodIndent + 1);
+        visitor.visit(lambda.blockStatement());
+        visitor.setIndentLevel(methodIndent);
+        JhpUtils.printIndent(out, methodIndent);
+
+
+        // 匿名内部类结束
+        visitor.setIndentLevel(baseIndent);
         out.println("};");
     }
 

@@ -212,6 +212,7 @@ public class ExpressionProcessor {
         java.io.StringWriter sw = new java.io.StringWriter();
         PrintWriter tmpOut = new PrintWriter(sw);
         JhpVisitor tmpVisitor = new JhpVisitor(tmpOut, 0, ""); // mode=0 避免额外输出
+        tmpVisitor.setIndentLevel(indent);
         tmpVisitor.visit(block);
         tmpOut.flush();
         return sw.toString();

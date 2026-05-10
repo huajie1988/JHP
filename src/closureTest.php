@@ -36,10 +36,16 @@ class ClosureTest {
         };
         $runnable();  // 调用 run
 
-//        $thread = new Thread((Runnable) function() : void {
-//            echo "Number is: " . $num;
-//        });
-//        $thread->start();
+        $num = 42;
+        $thread = new Thread((Runnable) function() : void {
+            echo "Number is: " . $num;
+        });
+        $thread->start();
+
+        $rr=(Runnable) function() : void {
+            echo "这是一个虚拟线程运行的任务";
+        };
+        Thread::ofVirtual()->start($rr);
 
         #[Type("Function<: int, string :>")]
         $intToString = function(int $num) : string {
