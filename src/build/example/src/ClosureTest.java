@@ -1,7 +1,7 @@
 import runtime.JhpRuntime;
 import java.util.*;
 import java.util.function.*;
-class ClosureTest {
+public class ClosureTest {
     public static void main(String[] args)    {
         Function< Integer, Integer > timesTwo = x -> x * 2;
         JhpRuntime.echo("TimesTwo(5): ", timesTwo.apply(5), "\n");
@@ -29,15 +29,6 @@ class ClosureTest {
             
         });
         thread.start();
-        Runnable rr = new Runnable() {
-            @Override
-            public void run() 
-            {
-                JhpRuntime.echo("这是一个虚拟线程运行的任务");
-            }
-            
-        };
-        Thread.ofVirtual().start(rr);
         Function< Integer, String > intToString = new Function< Integer, String >() {
             @Override
             public String apply(Integer num) 

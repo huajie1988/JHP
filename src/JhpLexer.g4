@@ -276,6 +276,7 @@ mode InterpolationString;
 VarNameInInterpolation : '$' NameString -> type(VarName);
 DollarString : '$' -> type(StringPart);
 CurlyDollar : '{' -> channel(SkipChannel), pushMode(PHP);
+//CurlyDollar : '{$' -> channel(SkipChannel), pushMode(InInterpolation);
 CurlyString : '{' -> type(StringPart);
 EscapedChar : '\\' . -> type(StringPart);
 DoubleQuoteInInterpolation : '"' -> type(DoubleQuote), popMode;

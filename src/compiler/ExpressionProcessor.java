@@ -126,6 +126,11 @@ public class ExpressionProcessor {
             return binary.generateExponential((JhpParser.ExponentiationExpressionContext) ctx, indent);
         }
 
+        // instanceof 表达式
+        if (ctx instanceof JhpParser.InstanceOfExpressionContext) {
+            return binary.generateInstanceOf((JhpParser.InstanceOfExpressionContext) ctx, indent);
+        }
+
         // 三元表达式
         if (ctx instanceof JhpParser.ConditionalExpressionContext) {
             return binary.generateConditionalExpression((JhpParser.ConditionalExpressionContext) ctx, indent);

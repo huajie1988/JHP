@@ -260,6 +260,13 @@ public class BinaryExpressionProcessor {
         return conditionPart + " ? " + truePartFormatted + " : " + falsePartFormatted;
     }
 
+    public String generateInstanceOf(JhpParser.InstanceOfExpressionContext ctx, int indentLevel) {
+        String left = exprProc.generateExpression(ctx.expression(), indentLevel);
+        String right = JhpUtils.mapTypeRefToJava(ctx.typeRef());
+        return left + " instanceof " + right;
+    }
+
+
     private String applyParentheses(String left, String right, String op,
                                     JhpParser.ExpressionContext leftCtx, JhpParser.ExpressionContext rightCtx) {
         String leftPart = JhpUtils.needsParentheses(leftCtx) ? "(" + left + ")" : left;

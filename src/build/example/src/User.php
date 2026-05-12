@@ -2,7 +2,7 @@
 namespace App\Model;
 
 import java\util\*;  // 翻译为 import java.util.*;
-include runtime\JhpRuntime;
+
 
 //interface UserService extends UserServiceInterface1, UserServiceInterface2{
 //    public function getUserById(int $id): User;
@@ -111,10 +111,14 @@ class User {
     }
 
     public function display(): void {
-
+        $a = new User();
+        $b = $a instanceof User;
+        echo $b;
         $tagsStr = (string) join(" | ", $this->tags);
         $namesList = split(",", $this->names);
-        echo "User: ", $this->name, " (ID: ", $this->id, ")\n";
+        echo "用户: $this->name,ID:$this->id \n";
+        echo "b is $b \n";
+        echo 'Tags: $tagsStr \n';
         echo "Active: ", $this->active ? "true" : "false", "\n";
     }
 

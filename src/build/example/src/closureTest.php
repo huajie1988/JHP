@@ -6,7 +6,7 @@ import java\util\function\*;
 /**
  * 闭包测试类
  */
-class ClosureTest {
+public class ClosureTest {
 
     /**
      * 主测试入口，类似 Java 的 main
@@ -37,15 +37,23 @@ class ClosureTest {
         $runnable();  // 调用 run
 
         $num = 42;
+
+        // TODO 转换后变成 testnum = (Integer) null;而非 testnum = null; 影响不大，待修复
+        //$testnum = 10;
+        //$testnum = null;
+        //echo "Num: ", $testnum, "\n";
+        //$testnum = 11;
+        //echo "Num: ", $testnum, "\n";
+
         $thread = new Thread((Runnable) function() : void {
             echo "Number is: " . $num;
         });
         $thread->start();
 
-        $rr=(Runnable) function() : void {
-            echo "这是一个虚拟线程运行的任务";
-        };
-        Thread::ofVirtual()->start($rr);
+        //$rr=(Runnable) function() : void {
+        //    echo "这是一个虚拟线程运行的任务";
+        //};
+        //Thread::ofVirtual()->start($rr);
 
         #[Type("Function<: int, string :>")]
         $intToString = function(int $num) : string {

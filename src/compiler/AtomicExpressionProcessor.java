@@ -13,13 +13,8 @@ public class AtomicExpressionProcessor {
     private final ExpressionProcessor exprProc;
     private boolean staticContext = false;
 
-    // 内置运行时函数名（需要翻译为 JhpRuntime.xxx）
-    private static final Set<String> RUNTIME_FUNCTIONS = new HashSet<>(Arrays.asList(
-        "count", "split", "join", "implode", "explode", "substr", "strtolower", "strtoupper", "trim", "ltrim", "rtrim"
-    ));
-
     private boolean isRuntimeFunction(String name) {
-        return RUNTIME_FUNCTIONS.contains(name);
+        return BuiltinConfig.isRuntimeFunction(name);
     }
 
     public void setStaticContext(boolean v) {
@@ -37,6 +32,12 @@ public class AtomicExpressionProcessor {
             // 类常量访问，如 self::PI、User::PI
             return translateClassConstant(ctx.constant().classConstant(), indentLevel);
         }
+
+        // 双引号字符串（可能包含嵌入变量）
+        if (ctx.string() != null) {
+            return generateInterpolatedString(ctx.string(), indentLevel);
+        }
+
         return ctx.getText();
     }        
     public String generateChain(JhpParser.ChainContext chain, int indent) {
@@ -281,6 +282,11 @@ public class AtomicExpressionProcessor {
             methodPath = varName + "." + methodName;
         } else {
             methodPath = extractFunctionName(fcn, indent);
+        }
+
+        //检查并处理内置运行时函数
+        if (isRuntimeFunction(methodPath)) {
+            methodPath = "JhpRuntime." + methodPath;
         }
 
         StringBuilder result = new StringBuilder(methodPath).append("(").append(args).append(")");
@@ -623,6 +629,177 @@ public class AtomicExpressionProcessor {
         else if (paramNames.size() == 1) params = paramNames.get(0);
         else params = "(" + String.join(", ", paramNames) + ")";
         return params + " -> " + body;
+    }
+
+    // 处理双引号字符串，生成 Java 字符串连接表达式
+    private String generateInterpolatedString(JhpParser.StringContext stringCtx, int indent) {
+        // 单引号字符串或 heredoc 直接返回原文本
+        if (stringCtx.SingleQuoteString() != null ||
+                stringCtx.StartHereDoc() != null ||
+                stringCtx.StartNowDoc() != null) {
+            return convertSingleQuotedToJavaString(stringCtx.SingleQuoteString().getText());
+        }
+
+        List<JhpParser.InterpolatedStringPartContext> parts = stringCtx.interpolatedStringPart();
+        if (parts.isEmpty()) {
+            // 纯双引号字符串，没有嵌入，直接作为 Java 字符串字面量返回
+            return "\"" + escapeJavaString(stringCtx.getText().substring(1, stringCtx.getText().length()-1)) + "\"";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        String pendingVar = null;   // 暂存变量名（例如 "this"），等待合并后续的 ->prop
+
+        for (int i = 0; i < parts.size(); i++) {
+            JhpParser.InterpolatedStringPartContext part = parts.get(i);
+//            System.err.println("part: " + part.getText());
+            if (part.StringPart() != null) {
+                String text = part.StringPart().getText();
+//                System.err.println("DEBUG: string part: " + text);
+                if (pendingVar != null && text.startsWith("->")) {
+                    // 变量紧跟 ->prop，合并属性访问
+                    String remaining = text;
+                    while (remaining.startsWith("->")) {
+                        int end = 2; // 指向 '>' 之后的第一字符
+                        while (end < remaining.length() && Character.isJavaIdentifierPart(remaining.charAt(end))) {
+                            end++;
+                        }
+                        String propName = remaining.substring(2, end);
+                        pendingVar += "." + propName;
+                        remaining = remaining.substring(end);
+                    }
+                    // 输出合并后的变量
+                    sb.append(pendingVar);
+                    pendingVar = null;
+                    // 剩余部分作为普通字符串拼接
+                    if (!remaining.isEmpty()) {
+                        sb.append(" + \"").append(escapeJavaString(remaining)).append("\" + ");
+                    } else {
+                        sb.append(" + ");
+                    }
+                } else {
+                    // 普通字符串
+                    sb.append("\"").append(escapeJavaString(text)).append("\" + ");
+                    pendingVar = null;
+                }
+            } else if (part.chain() != null) {
+                JhpParser.ChainContext c = part.chain();
+                String simpleVar = extractVariableNameFromChain(c);
+                if (simpleVar != null) {
+                    // 简单变量暂存，等待后续 StringPart 合并 ->prop
+                    pendingVar = simpleVar;
+                } else {
+                    // 复杂链（有函数调用、下标或已包含属性访问）直接生成完整表达式
+                    String javaCode = exprProc.generateChainCode(c, indent);
+                    sb.append(javaCode).append(" + ");
+                    pendingVar = null;
+                }
+            } else if (part.UnicodeEscape() != null) {
+                String uni = part.UnicodeEscape().getText();
+                String hex = uni.replaceAll("\\\\u\\{|\\}", "");
+                try {
+                    int codepoint = Integer.parseInt(hex, 16);
+                    sb.append("\"").append(new String(Character.toChars(codepoint))).append("\" + ");
+                } catch (NumberFormatException e) {
+                    sb.append("\"").append(uni).append("\" + ");
+                }
+                pendingVar = null;
+            }
+        }
+
+        // 最后一个待输出的变量
+        if (pendingVar != null) {
+            sb.append(pendingVar);
+        }
+
+        String result = sb.toString().trim();
+        if (result.endsWith("+")) {
+            result = result.substring(0, result.length() - 1).trim();
+        }
+        // 如果没有拼接变量，直接返回纯字符串
+        if (result.startsWith("\"") && !result.contains("+")) {
+            return result;
+        }
+        return result;
+    }
+
+    /**
+     * 如果 chain 是一个不带任何成员访问和函数调用的简单变量（如 $this、$name），
+     * 则返回去掉 $ 前缀的变量名；否则返回 null。
+     */
+    private String extractVariableNameFromChain(JhpParser.ChainContext chain) {
+        if (chain.chainOrigin() != null && chain.chainOrigin().chainBase() != null) {
+            JhpParser.ChainBaseContext base = chain.chainOrigin().chainBase();
+            // 只有 keyedVariable 且没有 memberAccess 和 actualArguments 才是简单变量
+            if (base.keyedVariable() != null && !base.keyedVariable().isEmpty() && chain.memberAccess().isEmpty()) {
+                String varText = base.keyedVariable(0).getText();
+                if (varText.startsWith("$")) {
+                    varText = varText.substring(1);
+                }
+                return varText;
+            }
+        }
+        return null;
+    }
+
+    //将 PHP 字符串内容中的特殊字符转义为 Java 字符串兼容形式
+    private String escapeJavaString(String phpString) {
+        if (phpString == null) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < phpString.length(); i++) {
+            char c = phpString.charAt(i);
+            switch (c) {
+                case '\\':
+                    sb.append("\\\\"); break;
+                case '"':
+                    sb.append("\\\""); break;
+                case '\n':
+                    sb.append("\\n"); break;
+                case '\r':
+                    sb.append("\\r"); break;
+                case '\t':
+                    sb.append("\\t"); break;
+                default:
+                    sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 解析 PHP 单引号字符串的内容（去掉首尾单引号，处理 \\ 和 \' 转义），返回实际字符串。
+     */
+    private String unescapePhpSingleQuotedString(String raw) {
+        String inner = raw.substring(1, raw.length() - 1); // 去掉首尾单引号
+        StringBuilder sb = new StringBuilder();
+        int len = inner.length();
+        for (int i = 0; i < len; i++) {
+            char c = inner.charAt(i);
+            if (c == '\\' && i + 1 < len) {
+                char next = inner.charAt(i + 1);
+                if (next == '\\') {
+                    sb.append('\\');
+                    i++;
+                } else if (next == '\'') {
+                    sb.append('\'');
+                    i++;
+                } else {
+                    // PHP 单引号字符串中，除 \\ 和 \' 外，反斜杠不具转义作用，原样保留
+                    sb.append(c);
+                }
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将 PHP 单引号字符串转换为 Java 双引号字符串字面量。
+     */
+    private String convertSingleQuotedToJavaString(String raw) {
+        String actual = unescapePhpSingleQuotedString(raw);
+        // escapeJavaString 会将 \、" 等特殊字符转义，然后包裹双引号
+        return "\"" + escapeJavaString(actual) + "\"";
     }
 
 }

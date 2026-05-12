@@ -10,21 +10,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 public class InferType {
     private VariableProcessor varProc;
 
-    private static final Map<String, String> BUILTIN_RETURN_TYPES = new HashMap<>();
-    static {
-        BUILTIN_RETURN_TYPES.put("count","Long");
-        BUILTIN_RETURN_TYPES.put( "split","List<String>");
-        BUILTIN_RETURN_TYPES.put( "join","String");
-        BUILTIN_RETURN_TYPES.put( "implode","String");
-        BUILTIN_RETURN_TYPES.put( "explode","List<String>");
-        BUILTIN_RETURN_TYPES.put( "substr","String");
-        BUILTIN_RETURN_TYPES.put( "strtolower","String");
-        BUILTIN_RETURN_TYPES.put( "strtoupper","String");
-        BUILTIN_RETURN_TYPES.put( "trim","String");
-        BUILTIN_RETURN_TYPES.put( "ltrim","String");
-        BUILTIN_RETURN_TYPES.put( "rtrim","String");
-    }
-
     public InferType(VariableProcessor varProc) {
         this.varProc = varProc;
     }
@@ -60,9 +45,11 @@ public class InferType {
                         }
                     }
                 }
-                 // 首先检查内置函数映射表
-                if (funcName != null && BUILTIN_RETURN_TYPES.containsKey(funcName)) {
-                    return BUILTIN_RETURN_TYPES.get(funcName);
+                // 首先检查内置函数映射表
+                // 内置函数类型推断
+                String builtinReturn = BuiltinConfig.getReturnType(funcName);
+                if (!builtinReturn.equals("Object")) {
+                    return builtinReturn;
                 }
                 return varProc.getFunctionReturnType(funcName);
             }
@@ -145,6 +132,8 @@ public class InferType {
             }      // 转换为 Java 包装类型
         } else if (ctx instanceof JhpParser.LambdaFunctionExpressionContext) {
             return "Object";
+        }else if (ctx instanceof JhpParser.InstanceOfExpressionContext) {
+            return "Boolean";
         }
         return "Object";
     }
@@ -425,8 +414,10 @@ public class InferType {
             }
 
             // 首先检查内置函数映射表
-            if (funcName != null && BUILTIN_RETURN_TYPES.containsKey(funcName)) {
-                return BUILTIN_RETURN_TYPES.get(funcName);
+            // 内置函数类型推断
+            String builtinReturn = BuiltinConfig.getReturnType(funcName);
+            if (!builtinReturn.equals("Object")) {
+                return builtinReturn;
             }
             return varProc.getFunctionReturnType(funcName);
         }

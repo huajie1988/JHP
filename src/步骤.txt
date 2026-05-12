@@ -40,7 +40,11 @@ javac ./jhp/parser/*.java
 javac compiler/*.java
 
 执行测试
-java Main test.php
+javac -d build Main.java compiler/*.java jhp/parser/*.java runtime/*.java
+cd build
+java Main example/src/closureTest.php 4
+java -cp .;example/src ClosureTest
+
 
 runtime打包
 javac runtime/JhpRuntime.java

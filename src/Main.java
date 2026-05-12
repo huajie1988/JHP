@@ -30,7 +30,15 @@ public class Main {
         String defaultClassName = baseName.substring(0, 1).toUpperCase() + baseName.substring(1);
         String className = (customClassName != null && !customClassName.isEmpty()) ? customClassName : defaultClassName;
 
-        String javaFile = className + ".java";
+        // 获取 PHP 文件所在的父目录
+        Path phpPath = Paths.get(phpFile);
+        Path parentDir = phpPath.getParent();
+        if (parentDir == null) {
+            parentDir = Paths.get(".");      // 如果 PHP 文件就在当前目录，取当前目录
+        }
+        Files.createDirectories(parentDir); // 确保目录存在
+
+        String javaFile = parentDir.resolve(className + ".java").toString();
 
         // 1. 解析 PHP
         CharStream input = CharStreams.fromFileName(phpFile);

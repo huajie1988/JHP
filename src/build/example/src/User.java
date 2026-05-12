@@ -2,8 +2,7 @@ package App.Model;
 
 import runtime.JhpRuntime;
 import java.util.*;
-import runtime.JhpRuntime;
-public class User {
+class User {
     public Integer id = 0;
     public String name = "Alice";
     private Double score = 3.14;
@@ -43,7 +42,7 @@ public class User {
     }
     public static void printAppInfo() 
     {
-        JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\n");
+        JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\\n");
     }
     public Double getScore(Double multiplier, Double bonus) 
     {
@@ -52,42 +51,44 @@ public class User {
     protected void init() 
     {
         Double c = User.PI * 2.0;
-        JhpRuntime.echo("Init with PI*2 = ", c, "\n");
+        JhpRuntime.echo("Init with PI*2 = ", c, "\\n");
         if (this.score > 0)
         {
-            JhpRuntime.echo("Positive score\n");
+            JhpRuntime.echo("Positive score" + "\\n");
         }
         else
         {
-            JhpRuntime.echo("Non-positive score\n");
+            JhpRuntime.echo("Non-positive score" + "\\n");
         }
         for (Integer i = 0; i < JhpRuntime.count(this.friendIds); i++)
         {
             Integer fid = this.friendIds.get(i);
-            JhpRuntime.echo("Friend[", i, "] = ", fid, "\n");
+            JhpRuntime.echo("Friend[", i, "] = ", fid, "\\n");
         }
         for (Integer id : this.friendIds) {
-            JhpRuntime.echo("Friend ID: ", id, "\n");
+            JhpRuntime.echo("Friend ID: ", id, "\\n");
         }
         for (Map.Entry<String, Integer> key_entry : this.attributes.entrySet()) {
             String key = key_entry.getKey();
             Integer value = key_entry.getValue();
-            JhpRuntime.echo(key, " => ", value, "\n");
+            JhpRuntime.echo(key, " => ", value, "\\n");
         }
         for (Map<String, String> row : this.complexData) {
-            JhpRuntime.echo("Row:\n");
+            JhpRuntime.echo("Row:" + "\\n");
             for (Map.Entry<String, String> k_entry : row.entrySet()) {
                 String k = k_entry.getKey();
                 String v = k_entry.getValue();
-                JhpRuntime.echo("  ", k, ": ", v, "\n");
+                JhpRuntime.echo("  ", k, ": ", v, "\\n");
             }
         }
     }
     public void display() 
     {
+        User a = new User();
+        Boolean b = a instanceof User;
+        JhpRuntime.echo(b);
         String tagsStr = ((String) JhpRuntime.join(" | ", this.tags));
         List<String> namesList = JhpRuntime.split(",", this.names);
-        JhpRuntime.echo("User: ", this.name, " (ID: ", this.id, ")\n");
-        JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\n");
-    }
-}
+        JhpRuntime.echo("用户: " + this.name + ",ID:" + this.id + " " + "\\n");
+        JhpRuntime.echo("b is " + " " + "\\n");
+        JhpRuntime.echo("Tags: $tagsStr \\n");
