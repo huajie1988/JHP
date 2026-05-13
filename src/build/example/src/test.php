@@ -185,7 +185,6 @@ function func2() : void {
     echo "Hello from func2\n";
 }
 
-
 foreach ($array as $row) {
     echo $row, ":\n";
     foreach ($row as $k2=>$value) {

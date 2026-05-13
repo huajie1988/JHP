@@ -422,6 +422,7 @@ expression
     | expression op = '<=>' expression                            # SpaceshipExpression
     // | Throw expression                                            # SpecialWordExpression
     | arrayDestructuring Eq expression                            # ArrayDestructExpression
+    //| assignable assignmentOperator attributes? hereDocString     # AssignmentExpression
     | assignable assignmentOperator attributes? expression        # AssignmentExpression
     // | assignable Eq attributes? '&' (chain | newExpr)             # AssignmentExpression
     | expression op = LogicalAnd expression                       # LogicalAndExpression
@@ -605,8 +606,8 @@ stringConstant
     ;
 
 string
-    : StartHereDoc HereDocText+
-    | StartNowDoc HereDocText+
+    : StartHereDoc HereDocText+ EndHereDoc
+    | StartNowDoc HereDocText+ EndNowDoc
     | SingleQuoteString
     | DoubleQuote interpolatedStringPart* DoubleQuote
     ;

@@ -298,8 +298,13 @@ CommentEnd : [\r\n] -> channel(SkipChannel), popMode;
 // ----------------------------------------------
 mode HereDoc;
 
-HereDocText : ~[\r\n]*? ('\r'? '\n' | '\r');
+// 结束标记：匹配 >>> EOT 或 >>> EOT; （分号可选）
+EndHereDoc : [ \t]* NameString [ \t]* '>>>' [ \t]* -> popMode;
+EndNowDoc  : [ \t]* '\'' NameString '\'' [ \t]* '>>>' [ \t]* -> popMode;
 
+// 一行文本：但不能以 >>> 结尾的行
+HereDocText : (~'>' | '>' ~'>' | '>' '>' ~'>')+ ( '\r'? '\n' | '\r' )
+            ;
 // ----------------------------------------------
 // fragments
 // ----------------------------------------------

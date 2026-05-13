@@ -222,6 +222,73 @@ Throw 表达式
 这样可以让编译器更接近实际生产使用，并为后续生成 JVM 字节码的后端奠定坚实基础。
 
 
+基于我们项目目前的进展，你已经拥有了一个非常完整的面向对象编译器。接下来，我建议按以下顺序逐步添加特性，这将让你的编译器在实用性和专业性上再上一个台阶。
+
+1. 立即实现：枚举 (enum)
+理由：JhpParser.g4 中已经有了完整的语法规则，实现成本相对较低，但收获很大。
+怎么做：
+
+在 JhpVisitor 中添加 visitEnumDeclaration。
+
+将 PHP 风格的枚举（enum Color { case RED; case GREEN; }）翻译为 Java 的 public enum Color { RED, GREEN; }。
+
+支持枚举常量、实现接口等复杂情况，但可以先从最简单的纯枚举值开始。
+
+这是一个标志性的功能，能立刻让你的编译器显得更完整。
+
+2. 核心增强：泛型类与泛型方法
+理由：语法文件中的 typeParameterListInBrackets 一直被保留但未被使用。支持泛型是编写现代 Java 库（如 List<: User :>）的基础，也是区分“玩具”和“工具”的关键。
+怎么做：
+
+在 JhpVisitor 中处理 typeParameterListInBrackets，生成 Java 的泛型参数 <T, U>。
+
+修改 generateClassMethod 和 visitClassDeclaration，在类名和方法签名后拼接泛型参数。
+
+将 List<: int :> 这种语法扩展为用户自定义类 MyClass<: T :>。
+
+3. 语法糖：可变参数 (...)
+理由：formalParameter 规则已经允许 '...'?，但翻译器尚未处理。实现它很简单，但能让编译器支持更丰富的函数签名。
+怎么做：
+
+在 JhpVisitor 中处理参数列表时，遇到 Ellipsis token 就生成 Java 的 Type... paramName。
+
+将复数参数类型注册为数组类型（例如 int... 实际上是 int[]），以支持调用时的类型检查。
+
+4. 生态完善：增强注解支持
+理由：目前只需要支持 @Override、@Deprecated 等标准 Java 注解，就能让生成的代码被现代 Java IDE 和工具理解。
+怎么做：
+
+扩展 #[JavaDoc(...)] 的处理逻辑，识别 @Override、@Deprecated、@SuppressWarnings 等特殊注解，并生成对应的 Java 注解。
+
+允许在类、方法、属性上使用。
+
+5. 持续优化：更智能的类型推断与错误提示
+理由：随着特性增多，类型推断的准确性和错误提示的友好度越来越重要。
+怎么做：
+
+提升 InferType 对泛型的推断能力。
+
+在 JhpRuntime 中添加更多运行时校验和友好的报错。
+
+在编译器中增加更人性化的编译错误提示（例如通过 JhpCompilationException 传递更多信息）。
+
+6. 基础建设：完善运行时库
+理由：一个强大的 JhpRuntime 类是生成的 Java 代码运行时的必备。
+怎么做：
+
+扩充 builtin_functions.properties 和对应的 JhpRuntime 方法，补全常见的字符串、数组、数学函数等。
+
+提供基础的 JhpRuntime 实用方法，如 matchError、类型安全的比较方法等。
+
+执行路线图
+本周/本周任务：实现 枚举 和 泛型类/方法。这两个特性会让编译器的能力产生质变。
+
+紧随其后：添加 可变参数 和 增强注解，让生成的代码更 Java 化。
+
+长期优化：持续改进类型推断和运行时库。
+
+现在，我们可以先从生成枚举的核心代码开始。你需要我帮你生成 visitEnumDeclaration 的实现吗？
+
 
 我们已完成PHP转Java编译器的大部分核心功能：变量、表达式、控制流、函数、类成员、静态成员、异常、泛型、命名空间、导入、注解等。接下来可以按以下路线继续开发：
 

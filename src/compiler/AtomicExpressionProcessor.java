@@ -633,14 +633,34 @@ public class AtomicExpressionProcessor {
 
     // 处理双引号字符串，生成 Java 字符串连接表达式
     private String generateInterpolatedString(JhpParser.StringContext stringCtx, int indent) {
+        List<JhpParser.InterpolatedStringPartContext> parts = new ArrayList<>();
         // 单引号字符串或 heredoc 直接返回原文本
-        if (stringCtx.SingleQuoteString() != null ||
-                stringCtx.StartHereDoc() != null ||
-                stringCtx.StartNowDoc() != null) {
-            return convertSingleQuotedToJavaString(stringCtx.SingleQuoteString().getText());
+        if (stringCtx.SingleQuoteString() != null || stringCtx.StartNowDoc() != null) {
+            String text = "";
+            if(stringCtx.SingleQuoteString() != null){
+                text = stringCtx.SingleQuoteString().getText();
+            }
+            if (stringCtx.StartNowDoc() != null){
+                for(TerminalNode terminalNode: stringCtx.HereDocText()){
+                    text += terminalNode.getText();
+                }
+                System.err.println("DEBUG: StartNowDoc: " + text);
+            }
+            return convertSingleQuotedToJavaString(text);
+        } else if (stringCtx.StartHereDoc() != null) {
+            // HereDoc需要支持变量插值，将所有文本行拼接后解析
+            StringBuilder combinedContent = new StringBuilder();
+            for (TerminalNode terminalNode : stringCtx.HereDocText()) {
+                combinedContent.append(terminalNode.getText());
+            }
+            System.err.println("DEBUG: interpolated string: is StartHereDoc");
+            // 使用统一的插值处理逻辑
+            return processInterpolatedContent(combinedContent.toString(), indent);
+        }else {
+            System.err.println("DEBUG: interpolated string: is interpolatedStringPart");
+            parts = stringCtx.interpolatedStringPart();
         }
 
-        List<JhpParser.InterpolatedStringPartContext> parts = stringCtx.interpolatedStringPart();
         if (parts.isEmpty()) {
             // 纯双引号字符串，没有嵌入，直接作为 Java 字符串字面量返回
             return "\"" + escapeJavaString(stringCtx.getText().substring(1, stringCtx.getText().length()-1)) + "\"";
@@ -648,7 +668,8 @@ public class AtomicExpressionProcessor {
 
         StringBuilder sb = new StringBuilder();
         String pendingVar = null;   // 暂存变量名（例如 "this"），等待合并后续的 ->prop
-
+        System.out.println("DEBUG: interpolated string: " + stringCtx.getText());
+        System.out.println("DEBUG: interpolated string: " + parts.size());
         for (int i = 0; i < parts.size(); i++) {
             JhpParser.InterpolatedStringPartContext part = parts.get(i);
 //            System.err.println("part: " + part.getText());
@@ -677,9 +698,13 @@ public class AtomicExpressionProcessor {
                         sb.append(" + ");
                     }
                 } else {
+                    // 普通字符串：先输出pendingVar（如果存在），再输出普通字符串
+                    if (pendingVar != null) {
+                        sb.append(pendingVar).append(" + ");
+                        pendingVar = null;
+                    }
                     // 普通字符串
                     sb.append("\"").append(escapeJavaString(text)).append("\" + ");
-                    pendingVar = null;
                 }
             } else if (part.chain() != null) {
                 JhpParser.ChainContext c = part.chain();
@@ -721,6 +746,68 @@ public class AtomicExpressionProcessor {
         }
         return result;
     }
+
+    /**
+     * 处理包含变量插值的字符串内容（用于HereDoc和双引号字符串）
+     * 支持：$varName、$this->prop、$obj->prop1->prop2 等格式
+     * @param content 原始字符串内容（包含换行符）
+     * @param indent 缩进级别
+     * @return Java字符串表达式
+     */
+    private String processInterpolatedContent(String content, int indent) {
+        // 使用正则表达式匹配PHP变量
+        // 匹配模式：$varName 或 $varName->prop1->prop2...
+        java.util.regex.Pattern varPattern = java.util.regex.Pattern.compile(
+                "\\$([a-zA-Z_][a-zA-Z0-9_]*)(?:->([a-zA-Z_][a-zA-Z0-9_]*(?:->[a-zA-Z_][a-zA-Z0-9_]*)*)?)?"
+        );
+        java.util.regex.Matcher matcher = varPattern.matcher(content);
+
+        StringBuilder sb = new StringBuilder();
+        int lastEnd = 0;
+
+        while (matcher.find()) {
+            // 添加变量前的普通文本
+            String beforeVar = content.substring(lastEnd, matcher.start());
+            if (!beforeVar.isEmpty()) {
+                sb.append("\"").append(escapeJavaString(beforeVar)).append("\" + ");
+            }
+
+            // 提取变量名和属性链
+            String varName = matcher.group(1);
+            String propChain = matcher.group(2);
+
+            // 构建完整的Java表达式
+            String javaExpr = varName;
+            if (propChain != null && !propChain.isEmpty()) {
+                // 将 PHP 的 -> 转换为 Java 的 .
+                javaExpr += "." + propChain.replace("->", ".");
+            }
+
+            sb.append(javaExpr).append(" + ");
+
+            lastEnd = matcher.end();
+        }
+
+        // 添加剩余的文本
+        String afterLastVar = content.substring(lastEnd);
+        if (!afterLastVar.isEmpty()) {
+            sb.append("\"").append(escapeJavaString(afterLastVar)).append("\"");
+        }
+
+        String result = sb.toString();
+        // 清理末尾的 " + "
+        if (result.endsWith(" + ")) {
+            result = result.substring(0, result.length() - 3);
+        }
+
+        // 如果没有任何变量，直接返回纯字符串
+        if (!result.contains(" + ")) {
+            return "\"" + escapeJavaString(content) + "\"";
+        }
+
+        return result;
+    }
+
 
     /**
      * 如果 chain 是一个不带任何成员访问和函数调用的简单变量（如 $this、$name），

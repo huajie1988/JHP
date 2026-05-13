@@ -2,6 +2,8 @@ package compiler;
 
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
+
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Map;

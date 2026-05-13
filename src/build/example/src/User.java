@@ -90,5 +90,12 @@ class User {
         String tagsStr = ((String) JhpRuntime.join(" | ", this.tags));
         List<String> namesList = JhpRuntime.split(",", this.names);
         JhpRuntime.echo("用户: " + this.name + ",ID:" + this.id + " " + "\\n");
-        JhpRuntime.echo("b is " + " " + "\\n");
         JhpRuntime.echo("Tags: $tagsStr \\n");
+        String name = "Alice";
+        JhpRuntime.echo("name is " + this.name + "\\n");
+        JhpRuntime.echo("name is " + name + "\\n");
+        String str = "\r\n            我的名字是" + this.name + "，\r\n            这是一段多行" + name + "文本。\r\n";
+        JhpRuntime.echo(str);
+        JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\\n");
+    }
+}

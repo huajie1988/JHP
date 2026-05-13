@@ -204,7 +204,7 @@ public class VariableProcessor {
 
         String rightType = (explicitType != null) ? explicitType : exprProc.inferTypeFromExpression(rightExpr);
         System.err.println("DEBUG: inferred type for " + rightExpr.getText() + " is " + rightType);
-        
+
         String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
 
         if (!varTypes.containsKey(leftVar)) {
