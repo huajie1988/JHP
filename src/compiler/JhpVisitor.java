@@ -449,9 +449,11 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             for (JhpParser.FormalParameterContext param : paramsCtx.formalParameter()) {
                 String paramType = "Object"; // 缺省类型
                 String annotation = JhpUtils.generateParameterAnnotations(param);
+                Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint());
                 }
+                paramType = paramType + (isVarArg ? "..." : "");
                 // variableInitializer 必须包含 VarName
                 String varName = param.variableInitializer().VarName().getText();
                 varName = varName.substring(1); // 去掉 $

@@ -131,4 +131,11 @@ class User {
         customerReal.setPassword("******");
         return new ResultVO(ResultCodeEnum.SUCCESS, customerReal);
     }
+    public void test( Integer... args) 
+    {
+        for (Integer i = 0; i < args.length; i++)
+        {
+            JhpRuntime.echo(JhpRuntime.arrayGet(args, i));
+        }
+    }
 }

@@ -184,9 +184,11 @@ public class EnumProcessor {
             for (JhpParser.FormalParameterContext param : func.formalParameterList().formalParameter()) {
                 String paramType = "Object";
                 String annotation = JhpUtils.generateParameterAnnotations(param);
+                Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint());
                 }
+                paramType = paramType + (isVarArg ? "..." : "");
                 String varName = param.variableInitializer().VarName().getText().substring(1);
                 paramStrs.add(annotation + " " + paramType + " " + varName);
                 varProc.setVariableType(varName, paramType);

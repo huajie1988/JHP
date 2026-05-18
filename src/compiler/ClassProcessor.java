@@ -240,9 +240,11 @@ public class ClassProcessor {
             for (JhpParser.FormalParameterContext param : stmt.formalParameterList().formalParameter()) {
                 String paramType = "Object";
                 String annotation = JhpUtils.generateParameterAnnotations(param);
+                Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint());
                 }
+                paramType = paramType + (isVarArg ? "..." : "");
                 String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
                 paramStrs.add(annotation + " " + paramType + " " + varName);
                 varProc.setVariableType(varName, paramType);

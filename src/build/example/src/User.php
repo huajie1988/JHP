@@ -154,4 +154,10 @@ class User {
         return new ResultVO(ResultCodeEnum::SUCCESS,customerReal);
     }
 
+    public function test(int... $args): void {
+        for ($i = 0; $i < $args->length; $i++){
+            echo $args[$i];
+        }
+    }
+
 }

@@ -35,9 +35,12 @@ public class ClosureProcessor {
         List<String> paramStrs = new ArrayList<>();
         for (JhpParser.FormalParameterContext p : lambda.formalParameterList().formalParameter()) {
             String paramType = "Object";
+            Boolean isVarArg = p.Ellipsis() != null;
             if (p.typeHint() != null) paramType = JhpUtils.mapTypeHint(p.typeHint());
+            String antotation = JhpUtils.generateParameterAnnotations(p);
+            paramType = paramType + (isVarArg ? "..." : "");
             String paramName = p.variableInitializer().VarName().getText().substring(1);
-            paramStrs.add(paramType + " " + paramName);
+            paramStrs.add(antotation + " " + paramType + " " + paramName);
             varProc.setVariableType(paramName, paramType);
         }
         String paramsStr = String.join(", ", paramStrs);
