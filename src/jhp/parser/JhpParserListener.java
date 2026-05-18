@@ -1292,6 +1292,16 @@ public interface JhpParserListener extends ParseTreeListener {
 	 */
 	void exitActualArgument(JhpParser.ActualArgumentContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link JhpParser#typeRefWithGenerics}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link JhpParser#typeRefWithGenerics}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link JhpParser#argumentName}.
 	 * @param ctx the parse tree
 	 */

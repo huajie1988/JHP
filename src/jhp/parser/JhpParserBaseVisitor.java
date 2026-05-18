@@ -872,6 +872,13 @@ public class JhpParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitArgumentName(JhpParser.ArgumentNameContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

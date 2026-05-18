@@ -2,6 +2,9 @@ package App.Model;
 
 import runtime.JhpRuntime;
 import java.util.*;
+@Service
+@Repository
+@Data
 class User {
     public Integer id = 0;
     public String name = "Alice";
@@ -28,7 +31,7 @@ class User {
     public static final Double PI = 3.14159;
     public static final Integer NEG = -10;
     public static final String CONCAT = "Hello";
-    public  User(Integer id, String name, Boolean active) 
+    public  User( Integer id,  String name,  Boolean active) 
     {
         this.id = id;
         this.name = name;
@@ -44,7 +47,11 @@ class User {
     {
         JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\\n");
     }
-    public Double getScore(Double multiplier, Double bonus) 
+    @Override
+    @Transactional
+    @GETMAPPING(value="/users/{id}")
+    @cron("0 0 0/1 * * *")
+    public Double getScore( Double multiplier,  Double bonus) 
     {
         return (this.score * multiplier) + bonus;
     }
@@ -96,6 +103,19 @@ class User {
         JhpRuntime.echo("name is " + name + "\\n");
         String str = "\r\n            我的名字是" + this.name + "，\r\n            这是一段多行" + name + "文本。\r\n";
         JhpRuntime.echo(str);
+        String sptext = JhpRuntime.sprintf("我的名字是%s，%s", this.name, name);
         JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\\n");
+    }
+    @GetMapping(value="/getInfo/{openId}")
+    public void getInfo(@PathVariable(value="openId")  String openId, @RequestHeader(value="token")  String token) 
+    {
+        Customer customer = authService.getCustomerByToken(token);
+        if (!customer.getWxOpenid().equals(openId))
+        {
+            return new ResultVO(ResultCodeEnum.ACCOUNT_DISABLED, null);
+        }
+        Customer customerReal = customerService.getCustomerByOpenId(openId);
+        customerReal.setPassword("******");
+        return new ResultVO(ResultCodeEnum.SUCCESS, customerReal);
     }
 }

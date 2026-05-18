@@ -266,7 +266,8 @@ public class VariableProcessor {
                 if (name.equals("Type") || name.equals("\\Type")) {
                     JhpParser.ArgumentsContext args = attr.arguments();
                     if (args != null && args.actualArgument().size() > 0) {
-                        String typeArg = args.actualArgument(0).expression().getText();
+                        JhpParser.ActualArgumentContext argCtx = args.actualArgument(0);
+                        String typeArg = extractTypeWithGenerics(argCtx);
                         System.err.println("DEBUG: typeArg = " + typeArg);
                         if (typeArg.startsWith("\"") || typeArg.startsWith("'")) {
                             typeArg = typeArg.substring(1, typeArg.length() - 1);
@@ -277,6 +278,21 @@ public class VariableProcessor {
             }
         }
         return null;
+    }
+
+    private String extractTypeWithGenerics(JhpParser.ActualArgumentContext argCtx) {
+        if (argCtx.typeRefWithGenerics() != null) {
+            JhpParser.TypeRefWithGenericsContext typeRefCtx = argCtx.typeRefWithGenerics();
+            String baseType = typeRefCtx.qualifiedNamespaceName().getText();
+            String generics = typeRefCtx.genericDynamicArgs().getText();
+            return baseType + generics;
+        }
+
+        if (argCtx.expression() != null) {
+            return argCtx.expression().getText();
+        }
+
+        return "";
     }
 
     public String getVariableType(String varName) { 

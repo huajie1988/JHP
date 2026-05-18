@@ -121,7 +121,7 @@ attributes
     ;
 
 attributeGroup
-    : AttributeStart (identifier ':')? attribute (',' attribute)* ']'
+    : AttributeStart (identifier ':')?  attribute (',' attribute)* ']'
     ;
 
 attribute
@@ -366,13 +366,17 @@ identifierInitializer
 
 // PHP 8 枚举
 enumDeclaration
-    : Enum_ identifier (Colon (IntType | StringType))? (Implements interfaceList)? OpenCurlyBracket enumItem* CloseCurlyBracket
+    : attributes? Enum_ name=identifier
+        (Colon typeHint (',' typeHint)*)?
+        (OpenRoundBracket fieldNames+=identifier (',' fieldNames+=identifier)* CloseRoundBracket)?
+        (Implements interfaceList)?
+        OpenCurlyBracket enumItem* CloseCurlyBracket
     ;
 
 enumItem
-    : Case identifier (Eq expression)? SemiColon
+    : Case identifier (Eq '(' expression (',' expression)* ')')? SemiColon
     | memberModifiers? functionDeclaration
-    | Use qualifiedNamespaceNameList traitAdaptations
+    //| Use qualifiedNamespaceNameList traitAdaptations
     ;
 
 expressionList
@@ -554,12 +558,16 @@ arguments
     ;
 
 actualArgument
-    : argumentName? '...'? expression
+    : argumentName? '...'? (typeRefWithGenerics | expression)
     // | '&' chain
     ;
 
+typeRefWithGenerics
+    : qualifiedNamespaceName genericDynamicArgs
+    ;
+
 argumentName
-    : identifier ':'
+    : identifier (':'|'=')
     ;
 
 constantInitializer

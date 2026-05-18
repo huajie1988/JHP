@@ -11,8 +11,8 @@ import java\util\*;  // 翻译为 import java.util.*;
 /**
  * 用户测试类
  */
-//#[JavaDoc(@Service,@Repository)]
-//#[JavaDoc(@Data)]
+#[JavaDoc(@Service,@Repository)]
+#[JavaDoc(@Data)]
 class User {
     // ---------- 成员变量 ----------
 
@@ -67,7 +67,8 @@ class User {
     }
 
     // ---------- 普通方法 ----------
-    //#[JavaDoc(@Override,@Transactional)]
+    #[JavaDoc(@Override,@Transactional,@GETMAPPING(value = '/users/{id}'),@cron("0 0 0/1 * * *"))]
+
     public function getScore(float $multiplier, float $bonus): double {
         return $this->score * $multiplier + $bonus;
     }
@@ -127,7 +128,21 @@ class User {
             这是一段多行$name文本。
             EOT >>>;
             echo $str;
+            $sptext = sprintf("我的名字是%s，%s", $this->name, $name);
             echo "Active: ", $this->active ? "true" : "false", "\n";
         }
+
+    #[JavaDoc(@GetMapping(value = '/getInfo/{openId}'))]
+    public function getInfo(#[JavaDoc(@PathVariable(value = "openId"))] string $openId,#[JavaDoc(@RequestHeader(value = "token"))] string $token) :ResultVO{
+        #[Type(Customer)]
+        $customer = $authService->getCustomerByToken(token);
+        if(!$customer->getWxOpenid()->equals($openId)){
+            return new ResultVO(ResultCodeEnum::ACCOUNT_DISABLED,null);
+        }
+        #[Type(Customer)]
+        $customerReal = $customerService->getCustomerByOpenId(openId);
+        $customerReal->setPassword("******");
+        return new ResultVO(ResultCodeEnum::SUCCESS,customerReal);
+    }
 
 }

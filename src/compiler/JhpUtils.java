@@ -380,4 +380,54 @@ public final class JhpUtils {
             return returnType + " apply(" + paramStr + ")"; // 默认
         }
     }
+
+    public static void generateClassAttribute(JhpParser.AttributesContext ctx , PrintWriter out, int indent) {
+        for (JhpParser.AttributeGroupContext group : ctx.attributeGroup()) {
+            for (JhpParser.AttributeContext attr : group.attribute()) {
+                String indefierType = attr.qualifiedNamespaceName().getText();
+                if(indefierType.equals("JavaDoc")){
+                    JhpParser.ArgumentsContext args = attr.arguments();
+                    if (args != null && args.actualArgument().size() > 0) {
+                        for (JhpParser.ActualArgumentContext arg : args.actualArgument()){
+                            JhpUtils.printIndent(out, indent);
+                            String typeArg = arg.expression().getText();
+                            System.err.println("DEBUG: typeArg = " + typeArg);
+                            if (typeArg.startsWith("\"") || typeArg.startsWith("'")) {
+                                typeArg = typeArg.substring(1, typeArg.length() - 1);
+                            }
+                            typeArg = typeArg.replaceAll("'", "\"");
+                            out.println( typeArg );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 从参数的 attributes 中提取注解文本
+     * 例如 #[JavaDoc(@RequestHeader(value = "token"))] → "@RequestHeader(value = "token") "
+     */
+    public static String generateParameterAnnotations(JhpParser.FormalParameterContext param) {
+        JhpParser.AttributesContext attrs = param.attributes();
+        if (attrs == null) return "";
+
+        StringBuilder sb = new StringBuilder();
+        for (JhpParser.AttributeGroupContext group : attrs.attributeGroup()) {
+            for (JhpParser.AttributeContext attr : group.attribute()) {
+                String name = attr.qualifiedNamespaceName().getText();
+                if (name.equals("JavaDoc") || name.equals("\\JavaDoc")) {
+                    JhpParser.ArgumentsContext args = attr.arguments();
+                    if (args != null) {
+                        for (JhpParser.ActualArgumentContext arg : args.actualArgument()) {
+                            String annoText = arg.expression().getText();   // 例如 "@RequestHeader(value = "token")"
+                            sb.append(annoText).append(" ");
+                        }
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
 }

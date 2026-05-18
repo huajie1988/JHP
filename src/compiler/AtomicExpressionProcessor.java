@@ -653,11 +653,11 @@ public class AtomicExpressionProcessor {
             for (TerminalNode terminalNode : stringCtx.HereDocText()) {
                 combinedContent.append(terminalNode.getText());
             }
-            System.err.println("DEBUG: interpolated string: is StartHereDoc");
+//            System.err.println("DEBUG: interpolated string: is StartHereDoc");
             // 使用统一的插值处理逻辑
             return processInterpolatedContent(combinedContent.toString(), indent);
         }else {
-            System.err.println("DEBUG: interpolated string: is interpolatedStringPart");
+//            System.err.println("DEBUG: interpolated string: is interpolatedStringPart");
             parts = stringCtx.interpolatedStringPart();
         }
 
@@ -668,8 +668,8 @@ public class AtomicExpressionProcessor {
 
         StringBuilder sb = new StringBuilder();
         String pendingVar = null;   // 暂存变量名（例如 "this"），等待合并后续的 ->prop
-        System.out.println("DEBUG: interpolated string: " + stringCtx.getText());
-        System.out.println("DEBUG: interpolated string: " + parts.size());
+//        System.out.println("DEBUG: interpolated string: " + stringCtx.getText());
+//        System.out.println("DEBUG: interpolated string: " + parts.size());
         for (int i = 0; i < parts.size(); i++) {
             JhpParser.InterpolatedStringPartContext part = parts.get(i);
 //            System.err.println("part: " + part.getText());

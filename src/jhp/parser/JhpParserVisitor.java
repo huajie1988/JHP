@@ -775,6 +775,12 @@ public interface JhpParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitActualArgument(JhpParser.ActualArgumentContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link JhpParser#typeRefWithGenerics}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link JhpParser#argumentName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

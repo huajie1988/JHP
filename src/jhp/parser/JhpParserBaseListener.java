@@ -1481,6 +1481,18 @@ public class JhpParserBaseListener implements JhpParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTypeRefWithGenerics(JhpParser.TypeRefWithGenericsContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterArgumentName(JhpParser.ArgumentNameContext ctx) { }
 	/**
 	 * {@inheritDoc}

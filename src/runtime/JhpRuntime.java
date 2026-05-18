@@ -131,4 +131,8 @@ public class JhpRuntime {
         throw new RuntimeException("Unsupported type for count: " + obj.getClass());
     }
 
+    public static String sprintf(String format, Object... args) {
+        return String.format(format, args);
+    }
+
 }
