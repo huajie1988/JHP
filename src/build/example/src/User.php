@@ -139,6 +139,15 @@ class User {
         if(!$customer->getWxOpenid()->equals($openId)){
             return new ResultVO(ResultCodeEnum::ACCOUNT_DISABLED,null);
         }
+        try{
+            #[Type(Customer)]
+            $customer = $customerService->getCustomerByOpenId(openId);
+            throw new Exception("aaasss");
+        }catch (Exception $e){
+            return new ResultVO(ResultCodeEnum::ACCOUNT_NOT_EXIST,null);
+        }finally{
+            return new ResultVO(ResultCodeEnum::SUCCESS,customer);
+        }
         #[Type(Customer)]
         $customerReal = $customerService->getCustomerByOpenId(openId);
         $customerReal->setPassword("******");

@@ -582,6 +582,13 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitThrowStatement(JhpParser.ThrowStatementContext ctx) {
+        indent();
+        out.println("throw " + exprProc.generateExpression(ctx.expression(), indentLevel) + ";");
+        return null;
+    }
+
     private void clazzProcess(JhpParser.PhpFileContext ctx) {
 
         // 直接翻译所有顶层语句，不做任何包装
