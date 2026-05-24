@@ -434,7 +434,20 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
     @Override
     public Void visitFunctionDeclaration(JhpParser.FunctionDeclarationContext ctx) {
         String funcName = ctx.identifier().getText();
-        
+
+        // 提取方法泛型参数
+        List<String> methodTypeParams = new ArrayList<>();
+        String genericString = "";
+        if (ctx.typeParameterListInBrackets() != null) {
+            genericString = JhpUtils.applyMethodTypeParameters(ctx.typeParameterListInBrackets(),varProc);
+            if (ctx.typeParameterListInBrackets().typeParameterList() != null) {
+                for (JhpParser.TypeParameterDeclContext decl :
+                        ctx.typeParameterListInBrackets().typeParameterList().typeParameterDecl()) {
+                    methodTypeParams.add(decl.identifier().getText());
+                }
+            }
+        }
+
         // 推断返回类型
         String returnType = "void";
         if (ctx.typeHint() != null) {
@@ -466,11 +479,15 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         // 输出方法签名
         JhpUtils.printIndent(out, indentLevel);
         String staticString = (needStatic == 1) ? "static " : ""; // 如果是单文件编译并运行，方法需要 static
-        out.printf("public %s %s %s(%s) %n",staticString, returnType, funcName, String.join(", ", paramDecls));
+        out.printf("public %s %s %s %s(%s) %n",staticString,genericString, returnType, funcName, String.join(", ", paramDecls));
         
         // 方法体
         visit(ctx.blockStatement());
 
+        // 恢复作用域
+        if (!methodTypeParams.isEmpty()) {
+            JhpUtils.restoreMethodTypeParameters(methodTypeParams,varProc);
+        }
         return null;
     }
 

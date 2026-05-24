@@ -164,6 +164,21 @@ public class EnumProcessor {
         JhpParser.FunctionDeclarationContext func = item.functionDeclaration();
         if (func == null) return;
 
+        // 提取方法泛型参数
+        List<String> methodTypeParams = new ArrayList<>();
+        String genericString = "";
+        if (item.functionDeclaration().typeParameterListInBrackets() != null) {
+            JhpParser.FunctionDeclarationContext stmt = item.functionDeclaration();
+            genericString = JhpUtils.applyMethodTypeParameters(stmt.typeParameterListInBrackets(), varProc);
+            // 记录引入的参数，用于离开时恢复
+            if (stmt.typeParameterListInBrackets().typeParameterList() != null) {
+                for (JhpParser.TypeParameterDeclContext decl :
+                        stmt.typeParameterListInBrackets().typeParameterList().typeParameterDecl()) {
+                    methodTypeParams.add(decl.identifier().getText());
+                }
+            }
+        }
+
         // 提取修饰符
         String modifiers = JhpUtils.extractMethodModifiers(item.memberModifiers());
         String methodName = func.identifier().getText();
@@ -211,7 +226,7 @@ public class EnumProcessor {
 
         // 输出方法签名
         JhpUtils.printIndent(out, indent);
-        out.println(modifiers + returnType + " " + methodName + "(" + params + ")");
+        out.println(modifiers + genericString + " " + returnType + " " + methodName + "(" + params + ")");
         indent++;
 
         // 静态上下文
@@ -224,6 +239,11 @@ public class EnumProcessor {
 
         if (isStaticMethod) {
             exprProc.setStaticContext(false);
+        }
+
+        // 恢复作用域
+        if (!methodTypeParams.isEmpty()) {
+            JhpUtils.restoreMethodTypeParameters(methodTypeParams, varProc);
         }
 
         indent--;

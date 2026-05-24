@@ -39,6 +39,24 @@ public class ClassProcessor {
 
         }
 
+        // 提取泛型参数列表
+        List<String> typeParams = new ArrayList<>();
+        if (ctx.typeParameterListInBrackets() != null) {
+            JhpParser.TypeParameterListInBracketsContext tpCtx = ctx.typeParameterListInBrackets();
+            JhpParser.TypeParameterListContext listCtx = tpCtx.typeParameterList();
+            if (listCtx != null) {
+                for (JhpParser.TypeParameterDeclContext decl : listCtx.typeParameterDecl()) {
+                    typeParams.add(decl.identifier().getText());
+                }
+            }
+            // 不再处理 typeParameterWithDefaultsList，语法已删除
+        }
+
+        // 设置当前类的泛型参数作用域
+        if (!typeParams.isEmpty()) {
+            varProc.setCurrentTypeParameters(typeParams);
+        }
+
         // 修饰符：abstract, final 等
         String modifiers = "";
 
@@ -98,7 +116,9 @@ public class ClassProcessor {
             classType = "class"; // Java 没有 trait，暂当作普通类处理
         }
 
-        out.println(modifiers + classType+" " + className + extendsClause + implementsClause + " {");
+        String genericPart = typeParams.isEmpty() ? "" : "<" + String.join(", ", typeParams) + ">";
+
+        out.println(modifiers + classType+" " + className + genericPart + extendsClause + implementsClause + " {");
         indent++;
 
         insideClass = true;
@@ -112,6 +132,12 @@ public class ClassProcessor {
         indent--;
         JhpUtils.printIndent(out, indent);
         out.println("}");
+
+        // 清理泛型作用域
+        if (!typeParams.isEmpty()) {
+            varProc.clearCurrentTypeParameters();
+        }
+
         varProc.setCurrentClassName(null);
         return null;
     }
@@ -242,7 +268,7 @@ public class ClassProcessor {
                 String annotation = JhpUtils.generateParameterAnnotations(param);
                 Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
-                    paramType = JhpUtils.mapTypeHint(param.typeHint());
+                    paramType = JhpUtils.mapTypeHint(param.typeHint(), varProc);
                 }
                 paramType = paramType + (isVarArg ? "..." : "");
                 String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
@@ -255,14 +281,28 @@ public class ClassProcessor {
 
         // 返回类型
         String returnType = "void";
-        // System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
+        System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
         if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
-            // System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
-            returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint());
+            System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
+            returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint(), varProc);
         }
         // 构造函数没有返回类型
         if(isConstructor) {
             returnType = "";
+        }
+
+        // 提取方法泛型参数
+        List<String> methodTypeParams = new ArrayList<>();
+        String genericString = "";
+        if (stmt.typeParameterListInBrackets() != null) {
+            genericString = JhpUtils.applyMethodTypeParameters(stmt.typeParameterListInBrackets(), varProc);
+            // 记录引入的参数，用于离开时恢复
+            if (stmt.typeParameterListInBrackets().typeParameterList() != null) {
+                for (JhpParser.TypeParameterDeclContext decl :
+                        stmt.typeParameterListInBrackets().typeParameterList().typeParameterDecl()) {
+                    methodTypeParams.add(decl.identifier().getText());
+                }
+            }
         }
 
         // 根据方法体类型生成代码
@@ -285,7 +325,7 @@ public class ClassProcessor {
                 if(isInterface){
                     //接口只保留函数定义
                     System.err.println("Warning: method " + methodName + " is declared in an interface but has a body. Removing method body.");
-                    out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
+                    out.println(modifiers  + genericString + " "  + returnType + " " + methodName + "(" + params + ");");
                 }else{
                     if(isMain){
                         // main 方法硬编码为 public static void main(String[] args)
@@ -302,7 +342,7 @@ public class ClassProcessor {
                         varProc.setVariableType(mainArgName, "String[]");
                     }else{
                         //正常方法
-                        out.println(modifiers + returnType + " " + methodName + "(" + params + ") ");
+                        out.println(modifiers  + genericString +" " + returnType + " "+ methodName + "(" + params + ") ");
                     }
                 }
 
@@ -335,6 +375,10 @@ public class ClassProcessor {
                     exprProc.setStaticContext(false);
                 }
 
+                // 恢复作用域
+                if (!methodTypeParams.isEmpty()) {
+                    JhpUtils.restoreMethodTypeParameters(methodTypeParams, varProc);
+                }
                 // indent--;
                 // JhpUtils.printIndent(out, indent);
 

@@ -11,7 +11,7 @@ public enum EnumTest {
     }
     public Integer getCode() { return code; }
     public String getMessage() { return message; }
-        public static String getMessage( Integer code)
+        public static  String getMessage( Integer code)
 {
     List<EnumTest> list = List.of(EnumTest.values());
     for (EnumTest os : list) {

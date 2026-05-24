@@ -284,6 +284,21 @@ public class AtomicExpressionProcessor {
             methodPath = extractFunctionName(fcn, indent);
         }
 
+        //处理方法调用的泛型参数
+        String genericArgs = generateGenericArgs(funcCall.actualArguments());
+        if (!genericArgs.isEmpty()) {
+            int lastDot = methodPath.lastIndexOf('.');
+            if (lastDot != -1) {
+                // 例如 "java.util.Collections.sort" → "java.util.Collections.<String>sort"
+                methodPath = methodPath.substring(0, lastDot + 1)
+                        + genericArgs
+                        + methodPath.substring(lastDot + 1);
+            } else {
+                // 简单方法名 "sort" → "sort<String>"
+                methodPath = methodPath + genericArgs;
+            }
+        }
+
         //检查并处理内置运行时函数
         if (isRuntimeFunction(methodPath)) {
             methodPath = "JhpRuntime." + methodPath;
@@ -434,9 +449,25 @@ public class AtomicExpressionProcessor {
     /** 处理 memberAccess：将其转换为 .methodName(args) */
     private String generateMemberAccess(JhpParser.MemberAccessContext ctx, int indent) {
         String accessor = getAccessorName(ctx);
-        String base = "." + accessor;
+
+        String genericArgs = generateGenericArgs(ctx.actualArguments());   // 提取泛型参数
+
+        // 如果有泛型参数，生成 ".<Type>methodName"，否则 ".methodName"
+        String base = genericArgs.isEmpty()
+                ? ("." + accessor)
+                : ("." + genericArgs.substring(1) + "." + accessor);  // 把 "<String>" 去掉尖括号后加点？
+        // 实际上应该是 ". <String>method"？ 错误。 正确的 Java 语法是 obj.<String>method
+        // 我们目前生成 "." + accessor，插入泛型后应该成为 "." + genericArgs + accessor? 不对，
+        // genericArgs 本身是 "<String>"，我们想在点和方法名之间插入泛型参数：
+        // ". <String>method" 是错误空格，应该是 ".<String>method"
+        // 所以 base = "." + genericArgs + accessor 即可。注意 genericArgs 开头就是 '<'。
+        // 重新修正：
+        base = "." + genericArgs + accessor;   // 例如 ".<String>transform"
+
         if (ctx.actualArguments() != null) {
-            base += "(" + generateArguments(ctx.actualArguments(), indent) + ")";
+            // 注意：actualArguments 中可能包含多个 arguments（链式调用），我们只处理参数部分
+            String args = generateArguments(ctx.actualArguments(), indent);
+            base += "(" + args + ")";
         }
         return base;
     }
@@ -887,6 +918,22 @@ public class AtomicExpressionProcessor {
         String actual = unescapePhpSingleQuotedString(raw);
         // escapeJavaString 会将 \、" 等特殊字符转义，然后包裹双引号
         return "\"" + escapeJavaString(actual) + "\"";
+    }
+
+    /**
+     * 将 actualArguments 中的泛型参数转换为 Java 的泛型调用字符串，例如 "<String, Integer>"
+     */
+    private String generateGenericArgs(JhpParser.ActualArgumentsContext aac) {
+        if (aac == null || aac.genericDynamicArgs() == null) return "";
+        JhpParser.GenericDynamicArgsContext gaCtx = aac.genericDynamicArgs();
+        if (gaCtx.typeRef() == null || gaCtx.typeRef().isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("<");
+        for (int i = 0; i < gaCtx.typeRef().size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(JhpUtils.mapTypeRefToJava(gaCtx.typeRef(i)));
+        }
+        sb.append(">");
+        return sb.toString();
     }
 
 }

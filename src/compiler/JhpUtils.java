@@ -151,6 +151,10 @@ public final class JhpUtils {
 
     // 辅助方法：将 PHP typeHint 转为 Java 类型字符串
     public static String mapTypeHint(JhpParser.TypeHintContext typeHint) {
+        return mapTypeHint(typeHint, null);
+    }
+
+    public static String mapTypeHint(JhpParser.TypeHintContext typeHint, VariableProcessor varProc) {
         // System.err.println("DEBUG: mapping type hint: " +typeHint.qualifiedStaticTypeRef().getText());
         if (typeHint == null) return "Object";
         // 1. 基础类型如 int, bool, string 等
@@ -161,6 +165,10 @@ public final class JhpUtils {
         if (typeHint.qualifiedStaticTypeRef() != null) {
             JhpParser.QualifiedStaticTypeRefContext qsr = typeHint.qualifiedStaticTypeRef();
             String text = qsr.getText();
+            // 检查是否为当前作用域的泛型参数
+            if (varProc != null && varProc.isTypeParameter(text)) {
+                return text;   // 直接返回 T, K, V 等
+            }
             String mapped = mapJhpTypeToJavaType(text);
             if (!mapped.equals(text)) {
                 return mapped; // 基本类型
@@ -429,5 +437,38 @@ public final class JhpUtils {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * 从 typeParameterListInBrackets 中提取方法级泛型参数名，
+     * 生成 Java 的 <T, U> 字符串，并临时更新当前泛型作用域。
+     * @return 泛型参数字符串，如 "<T, U>"
+     */
+    public static String applyMethodTypeParameters(JhpParser.TypeParameterListInBracketsContext tpCtx, VariableProcessor varProc) {
+        if (tpCtx == null) return "";
+        JhpParser.TypeParameterListContext listCtx = tpCtx.typeParameterList();
+        if (listCtx == null) return "";
+        List<String> params = new ArrayList<>();
+        for (JhpParser.TypeParameterDeclContext decl : listCtx.typeParameterDecl()) {
+            params.add(decl.identifier().getText());
+        }
+        if (params.isEmpty()) return "";
+
+        // 将方法级泛型参数追加到当前作用域（注意不要覆盖类级参数，而是合并）
+        List<String> combined = new ArrayList<>(varProc.getCurrentTypeParameters());
+        combined.addAll(params);
+        varProc.setCurrentTypeParameters(combined);   // 设置合并后的列表
+        return "<" + String.join(", ", params) + ">";
+    }
+
+    /**
+     * 恢复方法执行前的泛型作用域（去掉方法自己的参数）
+     * @param methodParams 方法声明中引入的泛型参数列表
+     */
+    public static void restoreMethodTypeParameters(List<String> methodParams,VariableProcessor varProc) {
+        if (methodParams == null || methodParams.isEmpty()) return;
+        List<String> current = varProc.getCurrentTypeParameters();
+        current.removeAll(methodParams);
+        varProc.setCurrentTypeParameters(current);
     }
 }

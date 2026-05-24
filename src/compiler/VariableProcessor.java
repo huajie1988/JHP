@@ -23,6 +23,7 @@ public class VariableProcessor {
     // 新增字段
     private String currentClassName = null;
 
+    private List<String> currentTypeParameters = new ArrayList<>();
     public VariableProcessor(PrintWriter out) {
         this.out = out;
     }
@@ -360,6 +361,25 @@ public class VariableProcessor {
             }
         }
         return false;
+    }
+
+    // 设置当前类的泛型参数列表
+    public void setCurrentTypeParameters(List<String> params) {
+        this.currentTypeParameters = new ArrayList<>(params);
+    }
+
+    // 清除当前类的泛型参数列表
+    public void clearCurrentTypeParameters() {
+        this.currentTypeParameters.clear();
+    }
+
+    // 判断标识符是否是当前类的泛型参数
+    public boolean isTypeParameter(String name) {
+        return currentTypeParameters.contains(name);
+    }
+
+    public List<String> getCurrentTypeParameters() {
+        return new ArrayList<>(currentTypeParameters);
     }
 
 }

@@ -14,4 +14,5 @@ enum EnumTest : int, string (code, message) {
         }
         return null;
     }
+
 }

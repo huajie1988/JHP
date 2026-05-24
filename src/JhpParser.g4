@@ -91,8 +91,9 @@ interfaceList
 
 typeParameterListInBrackets
     : '<:' typeParameterList ':>'
-    | '<:' typeParameterWithDefaultsList ':>'
-    | '<:' typeParameterList ',' typeParameterWithDefaultsList ':>'
+    //暂时不支持默认值泛型
+    //| '<:' typeParameterWithDefaultsList ':>'
+    //| '<:' typeParameterList ',' typeParameterWithDefaultsList ':>'
     ;
 
 typeParameterList
@@ -303,8 +304,9 @@ classStatement
         | memberModifiers? (
             Const typeHint? identifierInitializer (',' identifierInitializer)* SemiColon
             | Function_ identifier typeParameterListInBrackets? '(' formalParameterList ')' (
-                baseCtorCall
-                | returnTypeDecl
+                returnTypeDecl
+                | baseCtorCall
+                //baseCtorCall语法理论上不应该存在，即在方法定义时就需调用父类构造函数，目前暂不支持，但语法规则暂时保留，后续考虑删除
             )? methodBody
         )
     )
