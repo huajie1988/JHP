@@ -36,7 +36,9 @@ public class EnumProcessor {
         List<String> paramTypes = new ArrayList<>();
         if (ctx.Colon() != null) {
             for (JhpParser.TypeHintContext th : ctx.typeHint()) {
-                paramTypes.add(JhpUtils.mapTypeHint(th));
+                String paramType = JhpUtils.mapTypeHint(th);
+                paramType = visitor.shortenClassName(paramType);
+                paramTypes.add(paramType);
             }
         }
 
@@ -202,6 +204,7 @@ public class EnumProcessor {
                 Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint());
+                    paramType = visitor.shortenClassName(paramType);
                 }
                 paramType = paramType + (isVarArg ? "..." : "");
                 String varName = param.variableInitializer().VarName().getText().substring(1);
@@ -215,6 +218,7 @@ public class EnumProcessor {
         String returnType = "void";
         if (func.typeHint() != null) {
             returnType = JhpUtils.mapTypeHint(func.typeHint());
+            returnType = visitor.shortenClassName(returnType);
         }
 
         // 方法体
