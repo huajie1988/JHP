@@ -61,7 +61,7 @@ public class EnumProcessor {
         if (ctx.Implements() != null && ctx.interfaceList() != null) {
             List<String> ifaces = new ArrayList<>();
             for (JhpParser.QualifiedStaticTypeRefContext iface : ctx.interfaceList().qualifiedStaticTypeRef()) {
-                ifaces.add(JhpUtils.phpPackageToJavaPackage(iface.getText()));
+                ifaces.add(JhpUtils.qualifiedStaticTypeRefToJava(iface));
             }
             implementsClause = " implements " + String.join(", ", ifaces);
         }
@@ -235,7 +235,9 @@ public class EnumProcessor {
             exprProc.setStaticContext(true);
         }
 
+        varProc.enterScope();
         visitor.visit(block);
+        varProc.leaveScope();
 
         if (isStaticMethod) {
             exprProc.setStaticContext(false);

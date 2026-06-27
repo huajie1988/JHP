@@ -55,6 +55,7 @@ public class ClassProcessor {
         // 设置当前类的泛型参数作用域
         if (!typeParams.isEmpty()) {
             varProc.setCurrentTypeParameters(typeParams);
+            varProc.setClassTypeParamNames(className, typeParams); // 新增
         }
 
         // 修饰符：abstract, final 等
@@ -81,13 +82,13 @@ public class ClassProcessor {
             if(ctx.Extends() != null && ctx.interfaceList() != null){
                 List<String> ifaces = new ArrayList<>();
                 for (JhpParser.QualifiedStaticTypeRefContext iface : ctx.interfaceList().qualifiedStaticTypeRef()){
-                    ifaces.add(JhpUtils.phpPackageToJavaPackage(iface.getText()));
+                    ifaces.add(JhpUtils.qualifiedStaticTypeRefToJava(iface));
                 }
                 extendsClause = " extends " + String.join(", ", ifaces);
             }
         }else {
             if (ctx.Extends() != null && ctx.qualifiedStaticTypeRef() != null) {
-                extendsClause = " extends " + JhpUtils.phpPackageToJavaPackage(ctx.qualifiedStaticTypeRef().getText());
+                extendsClause = " extends " + JhpUtils.qualifiedStaticTypeRefToJava(ctx.qualifiedStaticTypeRef());
             }
         }
 
@@ -96,7 +97,7 @@ public class ClassProcessor {
         if (ctx.Implements() != null && ctx.interfaceList() != null) {
             List<String> ifaces = new ArrayList<>();
             for (JhpParser.QualifiedStaticTypeRefContext iface : ctx.interfaceList().qualifiedStaticTypeRef()) {
-                ifaces.add(JhpUtils.phpPackageToJavaPackage(iface.getText()));
+                ifaces.add(JhpUtils.qualifiedStaticTypeRefToJava(iface));
             }
             implementsClause = " implements " + String.join(", ", ifaces);
         }
@@ -191,6 +192,9 @@ public class ClassProcessor {
         String type = "Object"; // 默认类型
         if (stmt.typeHint() != null) {
             type = JhpUtils.mapTypeHint(stmt.typeHint());
+            // 解析为全限定名，以便全局表匹配
+            type = visitor.resolveClassName(type);
+            type = visitor.shortenClassName(type);
         }
         // 处理多个 variableInitializer（用逗号分隔）
         for (JhpParser.VariableInitializerContext varInit : stmt.variableInitializer()) {
@@ -212,6 +216,7 @@ public class ClassProcessor {
 
         if (stmt.typeHint() != null) {
             type = JhpUtils.mapTypeHint(stmt.typeHint());
+            type = visitor.shortenClassName(type);
         }
 
         List<JhpParser.IdentifierInitializerContext> idInits = stmt.identifierInitializer();
@@ -269,6 +274,7 @@ public class ClassProcessor {
                 Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint(), varProc);
+                    paramType = visitor.shortenClassName(paramType);
                 }
                 paramType = paramType + (isVarArg ? "..." : "");
                 String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
@@ -285,6 +291,8 @@ public class ClassProcessor {
         if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
             System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
             returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint(), varProc);
+            returnType = visitor.resolveClassName(returnType);
+            returnType = visitor.shortenClassName(returnType);
         }
         // 构造函数没有返回类型
         if(isConstructor) {
@@ -367,7 +375,11 @@ public class ClassProcessor {
 
                 int savedIndent = visitor.getIndentLevel();
                 visitor.setIndentLevel(this.indent);
+
+                varProc.enterScope();
                 visitor.visit(body.blockStatement());
+                varProc.leaveScope();
+
                 visitor.setIndentLevel(savedIndent);
 
                 // 还原静态上下文标志

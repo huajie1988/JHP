@@ -1,0 +1,25 @@
+<?php
+namespace com\huajie\app\service\impl;
+
+import com\baomidou\mybatisplus\extension\service\impl\ServiceImpl;
+import com\huajie\app\mapper\UserMapper;
+import com\huajie\app\domain\User;
+import com\huajie\app\service\UserService;
+import org\springframework\stereotype\Service;
+
+#[JavaDoc(@Service)]
+class UserServiceImpl extends ServiceImpl<: UserMapper, User :> implements UserService {
+
+    public function getByEmail(string $email): User {
+        $list = $this->list();
+        foreach ($list as $user) {
+            if ($user->email == $email) {
+                return $user;
+            }
+        }
+        return null;
+    }
+     public function getByPrice(int $id): Integer{
+         return 1000;
+     }
+}

@@ -6,7 +6,9 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.antlr.v4.runtime.*;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
@@ -26,6 +28,9 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
     private final EnumProcessor enumProcessor;
 
+    private String currentNamespace = null;
+    private Map<String, String> importMap = new HashMap<>();   // 短名 -> 全限定名
+
     public JhpVisitor(PrintWriter out, int mode, String className) {
         this.out = out;
         this.mode = mode;
@@ -33,7 +38,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         if(mode == 1 || mode == 2) {
             this.needStatic = 1; // 模式1和模式2需要 static 方法
         }
-        this.varProc = new VariableProcessor(out);
+        this.varProc = new VariableProcessor(out, this::shortenClassName);
         this.exprProc = new ExpressionProcessor(varProc, out);
         this.exprProc.setVisitor(this);
         this.varProc.setExprProcessor(exprProc);  // 解决循环依赖
@@ -51,6 +56,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         varProc.setCurrentAttributes(ctx.attributeGroup());
         return null;
     }
+    
 
     @Override
     public Void visitPhpFile(JhpParser.PhpFileContext ctx) {
@@ -452,6 +458,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         String returnType = "void";
         if (ctx.typeHint() != null) {
             returnType = JhpUtils.mapTypeHint(ctx.typeHint());
+            returnType = shortenClassName(returnType);
         }
 
         varProc.setFunctionReturnType(funcName, returnType);
@@ -465,6 +472,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                 Boolean isVarArg = param.Ellipsis() != null;
                 if (param.typeHint() != null) {
                     paramType = JhpUtils.mapTypeHint(param.typeHint());
+                    paramType = shortenClassName(paramType);
                 }
                 paramType = paramType + (isVarArg ? "..." : "");
                 // variableInitializer 必须包含 VarName
@@ -480,10 +488,13 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         JhpUtils.printIndent(out, indentLevel);
         String staticString = (needStatic == 1) ? "static " : ""; // 如果是单文件编译并运行，方法需要 static
         out.printf("public %s %s %s %s(%s) %n",staticString,genericString, returnType, funcName, String.join(", ", paramDecls));
-        
+
+        // 在 visit(body.blockStatement()) 之前
+        varProc.enterScope();
         // 方法体
         visit(ctx.blockStatement());
-
+        // 在 visit 之后
+        varProc.leaveScope();
         // 恢复作用域
         if (!methodTypeParams.isEmpty()) {
             JhpUtils.restoreMethodTypeParameters(methodTypeParams,varProc);
@@ -520,6 +531,11 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         JhpParser.ImportPathContext pathCtx = ctx.importPath();
         System.err.println("DEBUG: Visiting import statement with path: " + pathCtx.getText());
         String path = pathCtx.getText().replace("\\", ".");
+        // 只处理普通导入，跳过通配符
+        if (!path.endsWith(".*")) {
+            String alias = path.substring(path.lastIndexOf('.') + 1);
+            importMap.put(alias, path);
+        }
         out.println("import " + path + ";");
         return null;
     }
@@ -626,4 +642,39 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         return indentLevel;
     }
 
+    public VariableProcessor getVariableProcessor() {
+        return varProc;
+    }
+
+    public String resolveClassName(String name) {
+        if (name == null || name.isEmpty()) return name;
+        if (name.contains(".")) return name;      // 已经是全限定名
+        if (importMap.containsKey(name)) {
+            return importMap.get(name);
+        }
+        if (currentNamespace != null && !currentNamespace.isEmpty()) {
+            return currentNamespace + "." + name;
+        }
+        return name;
+    }
+
+    /**
+     * 将全限定类名转换为短名（如果当前文件有对应的 import 或处于同一包下）
+     */
+    public String shortenClassName(String fullName) {
+        if (fullName == null || fullName.isEmpty()) return fullName;
+        // 1. 查导入表（已通过 import 精确导入）
+        for (Map.Entry<String, String> entry : importMap.entrySet()) {
+            if (entry.getValue().equals(fullName)) {
+                return entry.getKey();   // 返回短名
+            }
+        }
+        // 2. 属于当前命名空间（同包），直接取短名
+        if (currentNamespace != null && fullName.startsWith(currentNamespace + ".")) {
+            String simpleName = fullName.substring(currentNamespace.length() + 1);
+            // 无冲突时直接返回
+            return simpleName;
+        }
+        return fullName;
+    }
 }

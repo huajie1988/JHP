@@ -119,6 +119,8 @@ class User {
             $namesList = split(",", $this->names);
             echo "用户: $this->name,ID:$this->id \n";
 
+            #[Type("int")]
+            $age = $userService->getAgeById($this->id);
             echo 'Tags: $tagsStr \n';
             $name = "Alice";
             echo "name is $this->name\n";

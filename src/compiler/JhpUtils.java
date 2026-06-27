@@ -6,11 +6,12 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.PrintWriter;
+import java.util.Map;
 
 public final class JhpUtils {
 
     // 将 PHP 类型映射为 Java 类型
-    public static String mapJhpTypeToJavaType(String phpType) { 
+    public static String mapJhpTypeToJavaType(String phpType) {
         System.err.println("DEBUG: mapping PHP type '" + phpType + "' to Java type");
         switch (phpType) {
             case "int":
@@ -471,4 +472,23 @@ public final class JhpUtils {
         current.removeAll(methodParams);
         varProc.setCurrentTypeParameters(current);
     }
+
+    /**
+     * 将类型字符串中的泛型参数根据绑定替换为实参
+     * 例如 type="T", bindings={"T":"Integer"} → "Integer"
+     */
+    public static String substituteGenericType(String type, Map<String, String> bindings) {
+        if (bindings == null || bindings.isEmpty() || type == null) return type;
+        for (Map.Entry<String, String> entry : bindings.entrySet()) {
+            // 使用单词边界确保只替换完整的标识符
+            type = type.replaceAll("\\b" + entry.getKey() + "\\b", entry.getValue());
+        }
+        return type;
+    }
+
+    public static String extractClassNameFromType(String javaType) {
+        int i = javaType.indexOf('<');
+        return i == -1 ? javaType : javaType.substring(0, i).trim();
+    }
+
 }

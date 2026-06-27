@@ -4,10 +4,8 @@ import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 
 public class VariableProcessor {
 
@@ -24,8 +22,23 @@ public class VariableProcessor {
     private String currentClassName = null;
 
     private List<String> currentTypeParameters = new ArrayList<>();
-    public VariableProcessor(PrintWriter out) {
+
+    // 存储类定义的泛型参数名列表，key=类名，value=有序参数名（如 ["T"] 或 ["K","V"]）
+    private Map<String, List<String>> classTypeParamNames = new HashMap<>();
+
+    // 存储变量的泛型实参绑定，key=变量名，value=参数名→实参类型字符串
+    private Map<String, Map<String, String>> varGenericBindings = new HashMap<>();
+
+    private GlobalSymbolTable globalTable;
+
+    // 符号表快照栈，用于作用域管理
+    private Deque<Map<String, String>> scopeStack = new ArrayDeque<>();
+
+    private final Function<String, String> typeShortener;
+
+    public VariableProcessor(PrintWriter out, Function<String, String> typeShortener) {
         this.out = out;
+        this.typeShortener = typeShortener;
     }
 
     public void setCurrentClassName(String className) {
@@ -205,16 +218,48 @@ public class VariableProcessor {
 
         String rightType = (explicitType != null) ? explicitType : exprProc.inferTypeFromExpression(rightExpr);
         System.err.println("DEBUG: inferred type for " + rightExpr.getText() + " is " + rightType);
-
+        rightType = typeShortener.apply(rightType);   // 短化
         String rightCode = exprProc.generateExpression(rightExpr, indentLevel);
 
+        // 泛型绑定建立
+        if (rightExpr instanceof JhpParser.NewExpressionContext) {
+            JhpParser.NewExpressionContext newCtx = (JhpParser.NewExpressionContext) rightExpr;
+            if (newCtx.newExpr().typeRef() != null) {
+                String className = extractClassNameFromType(rightType);
+                List<String> paramNames = getClassTypeParamNames(className);
+//                System.err.println("DEBUG: new expression1111: " + rightExpr.getText());
+//                System.err.println("DEBUG: new expression2222: " + paramNames+","+className);
+                if (!paramNames.isEmpty() && rightType.contains("<")) {
+                    Map<String, String> bindings = buildGenericBindings(rightType, paramNames);
+                    System.err.println("DEBUG: building generic bindings for " + className + ": "+leftVar + "," + bindings);
+                    setVarGenericBinding(leftVar, bindings);
+                }
+            }
+        } else if (rightExpr instanceof JhpParser.ChainExpressionContext) {
+            // 变量赋值传递绑定（例如 $box2 = $box1）
+            String sourceVar = JhpUtils.getVarNameFromChain(((JhpParser.ChainExpressionContext) rightExpr).chain());
+            Map<String, String> sourceBinding = getVarGenericBinding(sourceVar);
+            if (!sourceBinding.isEmpty()) {
+                setVarGenericBinding(leftVar, sourceBinding);
+            }
+        }
+
         if (!varTypes.containsKey(leftVar)) {
+            System.err.println("DEBUG: declaring " + leftVar + " as " + rightType);
             // 首次声明
-            varTypes.put(leftVar, rightType);
+            declareVariable(leftVar, rightType);
             JhpUtils.printIndent(this.out, indentLevel);
             out.printf("%s %s = %s;%n", rightType, leftVar, rightCode);
         } else {
+            System.err.println("DEBUG: re-assigning " + leftVar + " as " + rightType);
             String declaredType = varTypes.get(leftVar);
+            // 新增：如果旧类型是 Object，而新类型不是，则覆盖并视为声明
+            if ("Object".equals(declaredType) && !"Object".equals(rightType)) {
+                varTypes.put(leftVar, rightType);
+                JhpUtils.printIndent(out, indentLevel);
+                out.printf("%s %s = %s;%n", rightType, leftVar, rightCode);
+                return;
+            }
             if (declaredType.equals(rightType) || (declaredType.equals("Double") && rightType.equals("Integer"))) {
                 JhpUtils.printIndent(out, indentLevel);
                 out.printf("%s = %s;%n", leftVar, rightCode);
@@ -296,8 +341,10 @@ public class VariableProcessor {
         return "";
     }
 
+
     public String getVariableType(String varName) { 
         String key = varName;
+
         if (currentClassName != null && !currentClassName.isEmpty()) {
             key = currentClassName + "." + varName;
         }
@@ -309,10 +356,37 @@ public class VariableProcessor {
         if (currentClassName != null && !currentClassName.isEmpty()) {
             key = currentClassName + "." + varName;
         }
+
         varTypes.put( key, varType);
     }
     public boolean isVariableDeclared(String varName) {
         return varTypes.containsKey(varName);
+    }
+
+    /**
+     * 进入新作用域（如方法体），保存当前状态
+     */
+    public void enterScope() {
+        // 将当前 varTypes 深拷贝一份，压入栈顶
+        scopeStack.push(new HashMap<>(varTypes));
+    }
+
+    /**
+     * 离开作用域，恢复之前的状态
+     */
+    public void leaveScope() {
+        if (!scopeStack.isEmpty()) {
+            Map<String, String> saved = scopeStack.pop();
+            varTypes.clear();
+            varTypes.putAll(saved);
+        }
+    }
+
+    /**
+     * 在当前作用域内声明变量
+     */
+    public void declareVariable(String varName, String varType) {
+        varTypes.put(varName, varType);
     }
 
     public void setFunctionReturnType(String funcName, String returnType) {
@@ -323,27 +397,61 @@ public class VariableProcessor {
         funcReturnTypes.put(key, returnType);
     }
 
+    public void setGlobalTable(GlobalSymbolTable table) {
+        this.globalTable = table;
+    }
+
     public String getFunctionReturnType(String funcName) {
         if (funcName == null) return "Object";
+
+        // 打印调试信息
+        System.err.println("DEBUG: getFunctionReturnType called with funcName = " + funcName);
+        System.err.println("DEBUG: currentClassName = " + currentClassName);
+
         // 如果在类内部，则优先尝试“类名.方法名”键
         if (currentClassName != null && !currentClassName.isEmpty()) {
             String classKey = currentClassName + "." + funcName;
             if (funcReturnTypes.containsKey(classKey)) {
+                System.err.println("DEBUG: Found in local (classKey): " + classKey + " -> " + funcReturnTypes.get(classKey));
                 return funcReturnTypes.get(classKey);
             }
         }
         // 其次尝试简单方法名（用于全局函数）
         if (funcReturnTypes.containsKey(funcName)) {
+            System.err.println("DEBUG: Found in local (simple): " + funcName + " -> " + funcReturnTypes.get(funcName));
             return funcReturnTypes.get(funcName);
         }
 
-        // 提取最后一段名字
-        // String[] parts = funcName.split("\\.");
-        // String simpleName = parts[parts.length - 1];
-        // return funcReturnTypes.getOrDefault(simpleName, "Object");
+        // 打印本地所有键（仅用于调试，正式发布可删除）
+        System.err.println("DEBUG: Local funcReturnTypes keys: " + funcReturnTypes.keySet());
 
-        // 都没有，返回 Object
-        return "Object";
+            // 3. 全局符号表查找
+            if (globalTable != null) {
+                String className, method;
+                if (funcName.contains(".")) {
+                    int lastDot = funcName.lastIndexOf('.');
+                    className = funcName.substring(0, lastDot);
+                    method = funcName.substring(lastDot + 1);
+                    System.err.println("DEBUG: Querying globalTable for class " + className + ", method " + method);
+                    String type = globalTable.getMethodReturnType(className, method);
+                    System.err.println("DEBUG: Global table returned type: " + type);
+                    if (!"Object".equals(type)) {
+                        return type;
+                    }
+                } else if (currentClassName != null && !currentClassName.isEmpty()) {
+                    className = currentClassName;
+                    method = funcName;
+                    System.err.println("DEBUG: Querying globalTable for current class " + className + ", method " + method);
+                    String type = globalTable.getMethodReturnType(className, method);
+                    System.err.println("DEBUG: Global table returned type: " + type);
+                    if (!"Object".equals(type)) {
+                        return type;
+                    }
+                }
+            }
+
+            System.err.println("DEBUG: No type found for " + funcName + ", returning Object");
+            return "Object";
 
     }
 
@@ -380,6 +488,83 @@ public class VariableProcessor {
 
     public List<String> getCurrentTypeParameters() {
         return new ArrayList<>(currentTypeParameters);
+    }
+
+    /** 注册类的泛型参数名列表 */
+    public void setClassTypeParamNames(String className, List<String> paramNames) {
+        classTypeParamNames.put(className, paramNames);
+    }
+
+    /** 获取类的泛型参数名列表 */
+    public List<String> getClassTypeParamNames(String className) {
+//        return classTypeParamNames.getOrDefault(className, Collections.emptyList());
+        List<String> local = classTypeParamNames.getOrDefault(className, new ArrayList<>());
+        if (!local.isEmpty()) return local;
+        if (globalTable != null) {
+            return globalTable.getClassTypeParams(className);
+        }
+        return local;
+    }
+
+    /** 设置变量的泛型实参绑定 */
+    public void setVarGenericBinding(String varName, Map<String, String> bindings) {
+        if (bindings != null && !bindings.isEmpty()) {
+            varGenericBindings.put(varName, new HashMap<>(bindings));
+        }
+    }
+
+    /** 获取变量的泛型实参绑定 */
+    public Map<String, String> getVarGenericBinding(String varName) {
+        return varGenericBindings.getOrDefault(varName, Collections.emptyMap());
+    }
+
+    /**
+     * 根据类型字符串（如 "Box<Integer>"）和类原型参数名列表，
+     * 生成参数名→实参的映射。假设实参顺序与原型参数顺序一致。
+     */
+    public Map<String, String> buildGenericBindings(String fullType, List<String> paramNames) {
+        Map<String, String> bindings = new HashMap<>();
+        if (paramNames.isEmpty()) return bindings;
+        int start = fullType.indexOf('<');
+        int end = fullType.lastIndexOf('>');
+        if (start == -1 || end <= start) return bindings;
+        String argsPart = fullType.substring(start + 1, end);
+        String[] args = splitGenericArgs(argsPart);
+        for (int i = 0; i < paramNames.size() && i < args.length; i++) {
+            bindings.put(paramNames.get(i), args[i].trim());
+        }
+        return bindings;
+    }
+
+    /** 简单分割泛型实参，支持嵌套尖括号 */
+    private String[] splitGenericArgs(String s) {
+        List<String> result = new ArrayList<>();
+        int depth = 0, start = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '<') depth++;
+            else if (c == '>') depth--;
+            else if (c == ',' && depth == 0) {
+                result.add(s.substring(start, i).trim());
+                start = i + 1;
+            }
+        }
+        result.add(s.substring(start).trim());
+        return result.toArray(new String[0]);
+    }
+
+    /** 从完整类型字符串中提取纯类名 */
+    private String extractClassNameFromType(String javaType) {
+        int i = javaType.indexOf('<');
+        return i == -1 ? javaType : javaType.substring(0, i).trim();
+    }
+
+    /**
+     * 获取基础变量的类型，不带类名前缀。
+     * 适用于局部变量、函数参数等。
+     */
+    public String getBaseVariableType(String varName) {
+        return varTypes.getOrDefault(varName, "Object");
     }
 
 }

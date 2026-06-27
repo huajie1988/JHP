@@ -1,0 +1,10 @@
+<?php
+namespace com\huajie\app\service;
+
+import com\baomidou\mybatisplus\extension\service\IService;
+import com\huajie\app\domain\User;
+
+interface UserService extends IService<: User :> {
+    public function getByEmail(string $email): User;
+    public function getByPrice(int $id): Integer;
+}

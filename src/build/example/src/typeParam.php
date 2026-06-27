@@ -1,21 +1,5 @@
 <?php
 
-// =============================================
-// 泛型容器类 Box<:T:>
-// =============================================
-class TypeParam {
-    public static function main(List<:String:> $args): void {
-        $box = new Box<:String:>("Hello, World!");
-        #[Type(Function<:string, string:>)]
-        $func = function(string $str): string {
-            return strtoupper($str);
-        };
-        $box->transform<:string:>($func);
-        #[Type(string)]
-        $result = Utils::getFirst<:string:>($someList);
-    }
-}
-
 class Box<:T:> {
     public T $value;
 
@@ -35,6 +19,25 @@ class Box<:T:> {
         return $func($this->value);
     }
 }
+
+// =============================================
+// 泛型容器类 Box<:T:>
+// =============================================
+class TypeParam {
+    public static function main(List<:String:> $args): void {
+        $box = new Box<:String:>("Hello, World!");
+        #[Type("Function<:string, string:>")]
+        $func = function(string $str): string {
+            return strtoupper($str);
+        };
+        $val = $box->getValue();
+        $box->transform<:string:>($func);
+        #[Type("string")]
+        $result = Utils::getFirst<:string:>($someList);
+    }
+}
+
+
 
 // =============================================
 // 泛型工具类 Pair<:K, V:>

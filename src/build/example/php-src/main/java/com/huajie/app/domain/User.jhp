@@ -1,0 +1,17 @@
+<?php
+namespace com\huajie\app\domain;
+
+import com\baomidou\mybatisplus\annotation\IdType;
+import com\baomidou\mybatisplus\annotation\TableId;
+import com\baomidou\mybatisplus\annotation\TableName;
+import lombok\Data;
+
+#[JavaDoc(@Data)]
+#[JavaDoc(@TableName("user"))]
+class User {
+    #[JavaDoc(@TableId(type = IdType.AUTO))]
+    public int $id;
+    public string $name;
+    public string $email;
+    public int $age;
+}

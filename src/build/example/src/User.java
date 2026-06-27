@@ -31,7 +31,7 @@ class User {
     public static final Double PI = 3.14159;
     public static final Integer NEG = -10;
     public static final String CONCAT = "Hello";
-    public  User( Integer id,  String name,  Boolean active) 
+    public   User( Integer id,  String name,  Boolean active) 
     {
         this.id = id;
         this.name = name;
@@ -39,11 +39,11 @@ class User {
         User.instanceCount++;
         this.init();
     }
-    public static Integer getInstanceCount() 
+    public static  Integer getInstanceCount() 
     {
         return User.instanceCount;
     }
-    public static void printAppInfo() 
+    public static  void printAppInfo() 
     {
         JhpRuntime.echo("App: ", User.appName, " | Instances: ", User.instanceCount, "\\n");
     }
@@ -51,11 +51,11 @@ class User {
     @Transactional
     @GETMAPPING(value="/users/{id}")
     @cron("0 0 0/1 * * *")
-    public Double getScore( Double multiplier,  Double bonus) 
+    public  Double getScore( Double multiplier,  Double bonus) 
     {
         return (this.score * multiplier) + bonus;
     }
-    protected void init() 
+    protected  void init() 
     {
         Double c = User.PI * 2.0;
         JhpRuntime.echo("Init with PI*2 = ", c, "\\n");
@@ -89,7 +89,7 @@ class User {
             }
         }
     }
-    public void display() 
+    public  void display() 
     {
         User a = new User();
         Boolean b = a instanceof User;
@@ -97,6 +97,7 @@ class User {
         String tagsStr = ((String) JhpRuntime.join(" | ", this.tags));
         List<String> namesList = JhpRuntime.split(",", this.names);
         JhpRuntime.echo("用户: " + this.name + ",ID:" + this.id + " " + "\\n");
+        Integer age = userService.getAgeById(this.id);
         JhpRuntime.echo("Tags: $tagsStr \\n");
         String name = "Alice";
         JhpRuntime.echo("name is " + this.name + "\\n");
@@ -107,7 +108,7 @@ class User {
         JhpRuntime.echo("Active: ", this.active ? "true" : "false", "\\n");
     }
     @GetMapping(value="/getInfo/{openId}")
-    public void getInfo(@PathVariable(value="openId")  String openId, @RequestHeader(value="token")  String token) 
+    public  ResultVO getInfo(@PathVariable(value="openId")  String openId, @RequestHeader(value="token")  String token) 
     {
         Customer customer = authService.getCustomerByToken(token);
         if (!customer.getWxOpenid().equals(openId))
@@ -131,7 +132,7 @@ class User {
         customerReal.setPassword("******");
         return new ResultVO(ResultCodeEnum.SUCCESS, customerReal);
     }
-    public void test( Integer... args) 
+    public  void test( Integer... args) 
     {
         for (Integer i = 0; i < args.length; i++)
         {

@@ -3,6 +3,7 @@ package compiler;
 import jhp.parser.*;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.stringtemplate.v4.ST;
 
 import java.io.PrintWriter;
 import java.util.List;
@@ -228,4 +229,9 @@ public class ExpressionProcessor {
     public void setVisitor(JhpVisitor visitor) {
         this.visitor = visitor;
     }
+
+    public Map<String, String> getVarGenericBinding(String varName) {
+        return varProc.getVarGenericBinding(varName);
+    }
+
 }

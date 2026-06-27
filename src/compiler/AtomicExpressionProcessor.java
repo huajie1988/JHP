@@ -126,6 +126,10 @@ public class AtomicExpressionProcessor {
                 if (ma.actualArguments() == null) {
                     String propType = exprProc.getVariableTypes(accessor);  // 从符号表获取属性类型
                     if (!"Object".equals(propType)) {
+                        // 获取基础变量的泛型绑定并替换
+                        String baseVar = getBaseVarName(chain);
+                        Map<String, String> bindings = exprProc.getVarGenericBinding(baseVar);
+                        propType = JhpUtils.substituteGenericType(propType, bindings);
                         currentType = propType;   // 用于后续下标处理
                     } else {
                         currentType = "Object";   // 无法确定，降级

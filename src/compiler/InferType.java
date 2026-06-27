@@ -56,6 +56,9 @@ public class InferType {
 
             // 2. 链上有成员访问（如 $this->getScore()）
             if (!chain.memberAccess().isEmpty()) {
+                String baseVar = JhpUtils.getVarNameFromChain(chain);
+                Map<String, String> bindings = varProc.getVarGenericBinding(baseVar);
+
                 JhpParser.MemberAccessContext lastMa = chain.memberAccess().get(chain.memberAccess().size() - 1);
                 if (lastMa.actualArguments() == null) {
                     // ---- 属性访问：$this->friendIds ----
@@ -63,6 +66,8 @@ public class InferType {
                     if (memberName != null) {
                         String memberType = varProc.getVariableType(memberName);
                         if (!"Object".equals(memberType)) {
+                            // 2. 获取调用对象（如 box）的泛型绑定，并替换 memberType 中的泛型参数
+                            memberType = JhpUtils.substituteGenericType(memberType, bindings);
                             if (hasSubscript(chain) || !chain.memberAccess().get(0).keyedFieldName().keyedSimpleFieldName().squareCurlyExpression().isEmpty()) {
                                 int totalDepth = getSubscriptDepth(chain);
                                 for (int i = 0; i < totalDepth; i++) {
@@ -73,10 +78,28 @@ public class InferType {
                         }
                     }
                 } else {
-                    // ---- 方法调用：$this->getScore() ----
+                    // ---- 方法调用：$service->getPerson() ----
                     String methodName = lastMa.keyedFieldName().getText();
-                    String type = varProc.getFunctionReturnType(methodName);
-                    if (!"Object".equals(type)) return type;
+
+                    // 2. 获取该变量的类型（如 "PersonService" 或 "com.huajie.app.service.PersonService"）
+                    String varType = varProc.getBaseVariableType(baseVar);
+                    // 3. 提取纯类名（去掉泛型部分）
+                    String className = JhpUtils.extractClassNameFromType(varType);
+                    // 4. 构造全键 "PersonService.getPerson" 或 "com.huajie.app.service.PersonService.getPerson"
+                    String fullKey = className + "." + methodName;
+                    System.err.println("DEBUG: InferType method fullKey = " + fullKey);
+
+                    // 5. 用全键查询返回类型
+                    String rawReturnType = varProc.getFunctionReturnType(fullKey);
+                    // 6. 如果全局表没找到，回退到简单方法名（全局函数）
+                    if ("Object".equals(rawReturnType)) {
+                        rawReturnType = varProc.getFunctionReturnType(methodName);
+                    }
+                    System.err.println("DEBUG: inferring type from method " + methodName + " with return type " + rawReturnType);
+
+                    // 7. 用泛型绑定替换泛型参数
+                    String concreteType = JhpUtils.substituteGenericType(rawReturnType, bindings);
+                    if (!concreteType.equals("Object")) return concreteType;
                 }
                 // 如果无法推断方法返回类型，则退回到变量类型（考虑下标）
                 // 继续执行下面的变量类型逻辑

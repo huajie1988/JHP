@@ -28,7 +28,7 @@ class TypeParam {
                     return JhpRuntime.strtoupper(str);
                 }
             };
-        Object val = box.getValue();
+        String val = box.getValue();
         box.<String>transform(func);
         String result = Utils.<String>getFirst(someList);
     }
