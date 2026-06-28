@@ -134,4 +134,37 @@ public class UnaryExpressionProcessor {
         else params = "(" + String.join(", ", paramNames) + ")";
         return params + " -> " + body;
     }
+
+    public String generateClone(JhpParser.CloneExpressionContext ctx, int indent) {
+        String innerCode = exprProc.generateExpression(ctx.expression(), indent);
+        String innerType = exprProc.inferTypeFromExpression(ctx.expression());
+
+        System.err.println("WARNING: innerType "+innerType);
+        // 如果推断结果是 Object，但表达式是变量，尝试直接从符号表获取（作为后备）
+        if ("Object".equals(innerType) && ctx.expression() instanceof JhpParser.ChainExpressionContext) {
+            JhpParser.ChainExpressionContext chainCtx = (JhpParser.ChainExpressionContext) ctx.expression();
+            String varName = JhpUtils.getVarNameFromChain(chainCtx.chain());
+            System.err.println("WARNING: varName "+varName);
+            if (varName != null && !varName.isEmpty()) {
+                String directType = exprProc.getVariableTypes(varName);
+                System.err.println("WARNING: directType "+directType);
+                if (!"Object".equals(directType)) {
+                    innerType = directType;
+                }
+            }
+        }
+
+        // 如果推断出具体类型且不是基本类型，则生成强转；否则直接调用
+        if (innerType != null && !"Object".equals(innerType) && !isPrimitive(innerType)) {
+            return "(" + innerType + ") JhpRuntime.cloneObject(" + innerCode + ")";
+        } else {
+            return "JhpRuntime.cloneObject(" + innerCode + ")";
+        }
+    }
+
+    private boolean isPrimitive(String type) {
+        return type.equals("int") || type.equals("double") || type.equals("boolean") ||
+                type.equals("Integer") || type.equals("Double") || type.equals("Boolean") ||
+                type.equals("void") || type.equals("Void");
+    }
 }

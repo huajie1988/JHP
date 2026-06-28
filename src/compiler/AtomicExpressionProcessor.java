@@ -45,9 +45,9 @@ public class AtomicExpressionProcessor {
             return generateFunctionCall(chain, indent);
         }
 
-        System.err.println("DEBUG: Processing chain: " + chain.chainOrigin().chainBase().getText());
         // 处理 chainBase
         if (chain.chainOrigin().chainBase() != null) {
+            System.err.println("DEBUG: Processing chain: " + chain.chainOrigin().chainBase().getText());
             JhpParser.ChainBaseContext base = chain.chainOrigin().chainBase();
             String result;
 
@@ -156,6 +156,41 @@ public class AtomicExpressionProcessor {
                         currentType = "Object";
                     }
                 }
+            }
+            return result;
+        } else if (chain.chainOrigin().newExpr()!=null) {
+            JhpParser.NewExprContext newExpr = chain.chainOrigin().newExpr();
+            // 1. 转换类型
+            String javaType = JhpUtils.mapTypeRefToJava(newExpr.typeRef());
+            // 2. 生成参数列表
+            String args = "";
+            if (newExpr.arguments() != null) {
+                List<String> argExprs = new ArrayList<>();
+                for (JhpParser.ActualArgumentContext actArg : newExpr.arguments().actualArgument()) {
+                    if (actArg.expression() != null) {
+                        argExprs.add(exprProc.generateExpression(actArg.expression(), indent));
+                    }
+                    // 忽略 '&' 引用传递、命名参数等（根据需要扩展）
+                }
+                args = String.join(", ", argExprs);
+            }
+            // 3. 基础 new 表达式
+            String result = "(new " + javaType + "(" + args + "))";
+            String currentType = javaType; // 初始类型，但后续成员访问会丢失
+
+            // 4. 处理后续的 -> 成员访问（若有）
+            for (JhpParser.MemberAccessContext ma : chain.memberAccess()) {
+                // 先拼接属性/方法名（generateMemberAccess 内部已处理参数和泛型）
+                result += generateMemberAccess(ma, indent);
+                // 处理该成员访问自带的方括号下标（如 ->arr[0]）
+                List<String> maSubscripts = extractMemberSubscripts(ma);
+                for (String index : maSubscripts) {
+                    // 由于无法静态确定类型，统一使用 JhpRuntime.arrayGet
+                    result = "JhpRuntime.arrayGet(" + result + ", " + index + ")";
+                    currentType = "Object";
+                }
+                // 成员访问后类型未知，重置为 Object
+                currentType = "Object";
             }
             return result;
         }

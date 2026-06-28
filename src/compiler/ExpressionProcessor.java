@@ -62,7 +62,8 @@ public class ExpressionProcessor {
             return unary.generatePostfixIncDec((JhpParser.PostfixIncDecExpressionContext)ctx, indent);
         if (ctx instanceof JhpParser.NewExpressionContext)
             return unary.generateNewExpression((JhpParser.NewExpressionContext)ctx, indent);
-        
+        if (ctx instanceof JhpParser.CloneExpressionContext)
+            return unary.generateClone((JhpParser.CloneExpressionContext)ctx, indent);
 
 
         // 二元表达式

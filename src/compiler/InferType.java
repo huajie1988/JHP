@@ -157,6 +157,10 @@ public class InferType {
             return "Object";
         }else if (ctx instanceof JhpParser.InstanceOfExpressionContext) {
             return "Boolean";
+        }else if (ctx instanceof JhpParser.CloneExpressionContext) {
+            JhpParser.CloneExpressionContext cloneCtx = (JhpParser.CloneExpressionContext) ctx;
+            // 克隆表达式的类型与内部表达式类型一致
+            return inferTypeFromExpression(cloneCtx.expression());
         }
         return "Object";
     }

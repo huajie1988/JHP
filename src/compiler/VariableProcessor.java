@@ -345,6 +345,11 @@ public class VariableProcessor {
     public String getVariableType(String varName) { 
         String key = varName;
 
+        // 1. 先查找局部变量（不带类前缀）
+        if (varTypes.containsKey(varName)) {
+            return varTypes.get(varName);
+        }
+        // 2. 如果在类内部，再查找类属性（带类前缀）
         if (currentClassName != null && !currentClassName.isEmpty()) {
             key = currentClassName + "." + varName;
         }

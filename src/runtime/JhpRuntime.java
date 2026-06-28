@@ -1,5 +1,6 @@
 package runtime;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 public class JhpRuntime {
@@ -135,4 +136,18 @@ public class JhpRuntime {
         return String.format(format, args);
     }
 
+    public static Object cloneObject(Object obj) {
+        if (obj == null) return null;
+        try {
+            // 1. 反射获取 clone 方法并强制访问
+            Method cloneMethod = obj.getClass().getMethod("clone");
+            cloneMethod.setAccessible(true);
+            return cloneMethod.invoke(obj);
+        } catch (NoSuchMethodException e) {
+            // 2. 降级方案：如果没有 clone 方法，尝试序列化深拷贝（仅作保底）
+            throw new RuntimeException("Cloning not supported for " + obj.getClass());
+        } catch (Exception e) {
+            throw new RuntimeException("Clone failed: " + e.getMessage(), e);
+        }
+    }
 }
