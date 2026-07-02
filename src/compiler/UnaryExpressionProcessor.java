@@ -79,8 +79,16 @@ public class UnaryExpressionProcessor {
             // 复用现有的参数生成方式（直接从 arguments 提取）
             args = JhpUtils.generateArgumentsString(ctx.newExpr().arguments(), exprProc, indent);
         }
-        
-        return "new " + javaType + "(" + args + ")";
+
+        if(typeRef.anonymousClass()!=null){
+            ClassProcessor classProcessor = new ClassProcessor(exprProc.getVarProc(),
+                    exprProc,
+                    exprProc.getVisitor(),
+                    out);
+            return "new " + javaType + "(" + args + ")"+classProcessor.generateAnonymousClass(typeRef.anonymousClass(),indent);
+        }else{
+            return "new " + javaType + "(" + args + ")";
+        }
     }
 
     private String mapCastTargetType(JhpParser.CastOperationContext castOp) {
@@ -167,4 +175,5 @@ public class UnaryExpressionProcessor {
                 type.equals("Integer") || type.equals("Double") || type.equals("Boolean") ||
                 type.equals("void") || type.equals("Void");
     }
+
 }

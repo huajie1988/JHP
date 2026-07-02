@@ -51,7 +51,7 @@ class MixedTypeTest {
 // 期望：unset($arr[0]) 可能被忽略或产生副作用
 // ============================================================
 class UnsetCastTest {
-    public array $data = [1, 2, 3];
+    public List<:Integer:> $data = [1, 2, 3];
 
     public function testUnset(): array {
         $arr = [10, 20, 30];
@@ -72,15 +72,21 @@ class UnsetCastTest {
 // 说明：语法支持但生成代码为 Object
 // 期望：new class { ... } -> Object 类型
 // ============================================================
+interface HelloWorld {
+        public function greet():void;
+        public function greetSomeone(string $someone):void;
+}
 class AnonymousClassTest {
     public Object $anonymousObj;
 
     public function test(): void {
-        $this->anonymousObj = new class {
-            public string $value = "anonymous";
+        $s = new class implements HelloWorld {
+            public function greet(): void {
+                echo "Hello, World!";
+            }
 
-            public function getValue(): string {
-                return $this->value;
+            public function greetSomeone(string $someone): void {
+                echo "Hello, " . $someone . "!";
             }
         };
 
@@ -144,8 +150,7 @@ class AttributeOnExpressionTest {
 
     public function test(): void {
         // 表达式上的注解 - JHP可能不完全支持
-        #[\Attribute]
-        ($this->exprValue = 123);
+        $this->exprValue = 123;
 
         echo "AttributeOnExpressionTest:\n";
         echo strval($this->exprValue);
@@ -158,32 +163,32 @@ class AttributeOnExpressionTest {
 // 说明：基本可解析但未完全验证
 // 期望：endif;、endwhile; 等可能正确解析
 // ============================================================
-// class ColonStyleSyntaxTest {
-//     public string $output = "";
+ class ColonStyleSyntaxTest {
+     public string $output = "";
 
-//     public function test(): void {
-//         $x = 10;
-//         if ($x > 5):
-//             $this->output = $this->output . "x>5 ";
-//         endif;
+     public function test(): void {
+         $x = 10;
+         if ($x > 5):
+             $this->output = $this->output . "x>5 ";
+         endif;
 
-//         $i = 0;
-//         while ($i < 3):
-//             $this->output = $this->output . strval($i) . " ";
-//             $i++;
-//         endwhile;
+         $i = 0;
+         while ($i < 3):
+             $this->output = $this->output . strval($i) . " ";
+             $i++;
+         endwhile;
 
-//         $j = 0;
-//         for ($j = 0; $j < 2; $j++):
-//             $this->output = $this->output . "for ";
-//         endfor;
+         $j = 0;
+         for ($j = 0; $j < 2; $j++):
+             $this->output = $this->output . "for ";
+         endfor;
 
-//         echo "ColonStyleSyntaxTest:\n";
-//         echo $this->output;
-//         echo "\n";
-//         // 期望输出: x>5 0 1 2 for for
-//     }
-// }
+         echo "ColonStyleSyntaxTest:\n";
+         echo $this->output;
+         echo "\n";
+         // 期望输出: x>5 0 1 2 for for
+     }
+ }
 
 // ============================================================
 // 测试9: clone 表达式

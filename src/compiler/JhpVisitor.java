@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
-    private final PrintWriter out;
+    private PrintWriter out;
     private int indentLevel = 0;
     private int needStatic = 0; // 1=需要static，0=不需要static
     private final String mainClassName;          // 顶层 public class 的名字
@@ -728,5 +728,13 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
             return simpleName;
         }
         return fullName;
+    }
+
+    public void setOut(PrintWriter out) {
+        this.out = out;
+    }
+
+    public PrintWriter getOut() {
+        return this.out;
     }
 }

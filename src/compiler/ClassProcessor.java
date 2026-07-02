@@ -3,6 +3,7 @@ package compiler;
 import jhp.parser.JhpParser;
 
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -148,6 +149,46 @@ public class ClassProcessor {
         JhpUtils.generateClassAttribute(ctx, out, indent);
     }
 
+    public String generateAnonymousClass(JhpParser.AnonymousClassContext ctx,int ind) {
+        // 保存原始输出流和缩进
+        PrintWriter oldOut = this.out;
+        PrintWriter oldVisitorOut = visitor.getOut();   // 保存 visitor 的输出流
+        int savedIndent = this.indent;
+
+        // 创建临时输出流
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        this.out = pw;
+        visitor.setOut(pw);   // 替换 visitor 的输出流
+
+        // 设置匿名类内部的缩进（比外层多一级）
+        this.indent = ind + 1;
+
+        // 输出匿名类开始的花括号
+        JhpUtils.printIndent(pw, ind);
+        pw.println("{");
+
+        // 处理匿名类中的成员
+        if (ctx.classStatement() != null) {
+            for (JhpParser.ClassStatementContext stmt : ctx.classStatement()) {
+                translateClassStatement(stmt, null);
+            }
+        }
+
+        // 输出结束花括号
+        JhpUtils.printIndent(pw, ind);
+        pw.print("}");
+
+        // 恢复原始输出流和缩进
+        this.out = oldOut;
+        visitor.setOut(oldVisitorOut);
+        this.indent = savedIndent;
+
+        pw.flush();
+        return sw.toString();
+    }
+
+
     private void translateClassStatement(JhpParser.ClassStatementContext stmt,JhpParser.ClassDeclarationContext ctx) {
         if (stmt.Use() != null) {
             // trait use，暂不支持
@@ -170,7 +211,12 @@ public class ClassProcessor {
 
         // 函数声明
         if (stmt.Function_() != null) {
-            generateClassMethod(stmt, ctx);
+            if (ctx == null) {
+                // 匿名类中的方法：直接调用 generateClassMethod，但需要确保它不依赖 ctx 的非空属性
+                generateAnonymousClassMethod(stmt);
+            } else {
+                generateClassMethod(stmt, ctx);
+            }
             return;
         }
 
@@ -353,6 +399,152 @@ public class ClassProcessor {
                         out.println(modifiers  + genericString +" " + returnType + " "+ methodName + "(" + params + ") ");
                     }
                 }
+
+
+
+                // indent++;
+                // super其实不用特殊处理，直接当成普通方法调用生成即可，因为PHP里super不是关键字
+                // 处理构造器调用 baseCtorCall（仅限于构造方法）
+                if (stmt.baseCtorCall() != null && isConstructor) {
+                    String superArgs = JhpUtils.generateArgumentsString(stmt.baseCtorCall().arguments(), exprProc, indent);
+                    JhpUtils.printIndent(out, indent);
+                    out.println("super(" + superArgs + ");");
+                }
+
+                // 如果是静态方法，设置静态上下文标志
+                boolean isStaticMethod = modifiers.contains("static ");
+                if (isStaticMethod) {
+                    exprProc.setStaticContext(true);
+                }
+
+
+
+                int savedIndent = visitor.getIndentLevel();
+                visitor.setIndentLevel(this.indent);
+
+                varProc.enterScope();
+                visitor.visit(body.blockStatement());
+                varProc.leaveScope();
+
+                visitor.setIndentLevel(savedIndent);
+
+                // 还原静态上下文标志
+                if (isStaticMethod) {
+                    exprProc.setStaticContext(false);
+                }
+
+                // 恢复作用域
+                if (!methodTypeParams.isEmpty()) {
+                    JhpUtils.restoreMethodTypeParameters(methodTypeParams, varProc);
+                }
+                // indent--;
+                // JhpUtils.printIndent(out, indent);
+
+            }
+        }
+        if (!isConstructor) {
+            varProc.setFunctionReturnType( methodName, returnType);
+        }
+    }
+
+    private void generateAnonymousClassMethod(JhpParser.ClassStatementContext stmt) {
+        if(stmt.attributes()!=null){
+            generateClassAttribute(stmt.attributes());
+        }
+
+        // 提取修饰符（public/private/protected/static/abstract/final）
+        String modifiers = JhpUtils.extractMethodModifiers(stmt.memberModifiers());
+        String methodName = stmt.identifier().getText();
+        boolean isConstructor = JhpUtils.isConstructor(methodName);
+        boolean isMain = JhpUtils.isMain(methodName);
+        if (isConstructor) {
+            methodName = varProc.getCurrentClassName();   // 需要能获取到当前类名
+        }
+
+        // 处理参数列表，并将参数注册到符号表
+        List<String> paramStrs = new ArrayList<>();
+        if (stmt.formalParameterList() != null) {
+            for (JhpParser.FormalParameterContext param : stmt.formalParameterList().formalParameter()) {
+                String paramType = "Object";
+                String annotation = JhpUtils.generateParameterAnnotations(param);
+                Boolean isVarArg = param.Ellipsis() != null;
+                if (param.typeHint() != null) {
+                    paramType = JhpUtils.mapTypeHint(param.typeHint(), varProc);
+                    paramType = visitor.shortenClassName(paramType);
+                }
+                paramType = paramType + (isVarArg ? "..." : "");
+                String varName = param.variableInitializer().VarName().getText().substring(1); // 去掉 $
+                paramStrs.add(annotation + " " + paramType + " " + varName);
+                varProc.setVariableType(varName, paramType);
+
+            }
+        }
+        String params = String.join(", ", paramStrs);
+
+        // 返回类型
+        String returnType = "void";
+        System.err.println("DEBUG: Checking return type hint for method " + stmt.returnTypeDecl());
+        if (stmt.returnTypeDecl() != null && stmt.returnTypeDecl().typeHint() != null) {
+            System.err.println("DEBUG: Mapping return type hint for method " + stmt.returnTypeDecl().typeHint());
+            returnType = JhpUtils.mapTypeHint(stmt.returnTypeDecl().typeHint(), varProc);
+            returnType = visitor.resolveClassName(returnType);
+            returnType = visitor.shortenClassName(returnType);
+        }
+        // 构造函数没有返回类型
+        if(isConstructor) {
+            returnType = "";
+        }
+
+        // 提取方法泛型参数
+        List<String> methodTypeParams = new ArrayList<>();
+        String genericString = "";
+        if (stmt.typeParameterListInBrackets() != null) {
+            genericString = JhpUtils.applyMethodTypeParameters(stmt.typeParameterListInBrackets(), varProc);
+            // 记录引入的参数，用于离开时恢复
+            if (stmt.typeParameterListInBrackets().typeParameterList() != null) {
+                for (JhpParser.TypeParameterDeclContext decl :
+                        stmt.typeParameterListInBrackets().typeParameterList().typeParameterDecl()) {
+                    methodTypeParams.add(decl.identifier().getText());
+                }
+            }
+        }
+
+        // 根据方法体类型生成代码
+        JhpParser.MethodBodyContext body = stmt.methodBody();
+        if (body != null) {
+            if (body.SemiColon() != null) {
+                // 抽象方法（无方法体）
+                JhpUtils.printIndent(out, indent);
+                out.println(modifiers + returnType + " " + methodName + "(" + params + ");");
+            } else if (body.blockStatement() != null) {
+                // 如果声明了 abstract 但又有方法体，发出警告并去掉 abstract 修饰符
+                if(modifiers.contains("abstract")) {
+                    System.err.println("Warning: method " + methodName + " has a body but is declared abstract. Removing abstract modifier.");
+                    modifiers = modifiers.replace("abstract", "");
+                }
+
+
+                // 具体方法
+                JhpUtils.printIndent(out, indent);
+
+                if(isMain){
+                    // main 方法硬编码为 public static void main(String[] args)
+                    String mainArgName = "args"; // 默认
+                    if (!paramStrs.isEmpty()) {
+                        // 从参数列表中提取变量名（例如 "String args"）
+                        String[] parts = paramStrs.get(0).split(" ");
+                        if (parts.length >= 2) {
+                            mainArgName = parts[parts.length - 1];
+                        }
+                    }
+                    out.printf("public static void main(String[] %s)", mainArgName);
+                    // 注册 args 为 String[] 类型（这里简单处理，因为后面不会再用到类型）
+                    varProc.setVariableType(mainArgName, "String[]");
+                }else{
+                    //正常方法
+                    out.println(modifiers  + genericString +" " + returnType + " "+ methodName + "(" + params + ") ");
+                }
+
 
 
 

@@ -65,7 +65,6 @@ public class ExpressionProcessor {
         if (ctx instanceof JhpParser.CloneExpressionContext)
             return unary.generateClone((JhpParser.CloneExpressionContext)ctx, indent);
 
-
         // 二元表达式
         // 加法/字符串连接
         if (ctx instanceof JhpParser.AdditiveExpressionContext) {
@@ -233,6 +232,14 @@ public class ExpressionProcessor {
 
     public Map<String, String> getVarGenericBinding(String varName) {
         return varProc.getVarGenericBinding(varName);
+    }
+
+    public VariableProcessor getVarProc(){
+        return varProc;
+    }
+
+    public JhpVisitor getVisitor() {
+        return visitor;
     }
 
 }

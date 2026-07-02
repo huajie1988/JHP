@@ -259,7 +259,19 @@ public final class JhpUtils {
         }
         // static, anonymous, indirect 暂返回 Object
         if (typeRef.Static() != null) return "static";
-        if (typeRef.anonymousClass() != null) return "Object";
+        if (typeRef.anonymousClass() != null){
+            if(typeRef.anonymousClass().Extends()!=null && typeRef.anonymousClass().qualifiedStaticTypeRef()!=null){
+                return qualifiedStaticTypeRefToJava(typeRef.anonymousClass().qualifiedStaticTypeRef());
+            }
+            if(typeRef.anonymousClass().Implements()!=null && typeRef.anonymousClass().interfaceList()!=null){
+                List<String> ifaces = new ArrayList<>();
+                for (JhpParser.QualifiedStaticTypeRefContext iface : typeRef.anonymousClass().interfaceList().qualifiedStaticTypeRef()){
+                    ifaces.add(JhpUtils.qualifiedStaticTypeRefToJava(iface));
+                }
+                return  String.join(", ", ifaces);
+            }
+            return "Object";
+        }
         if (typeRef.indirectTypeRef() != null) return "Object";
         return "Object";
     }

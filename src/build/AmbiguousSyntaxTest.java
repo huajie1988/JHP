@@ -22,10 +22,10 @@ class MixedTypeTest {
     }
 }
 class UnsetCastTest {
-    public array data = new ArrayList<>(Arrays.asList(1, 2, 3));
+    public List<Integer> data = new ArrayList<>(Arrays.asList(1, 2, 3));
     public  array testUnset() 
     {
-        ArrayList<Integer> arr = new ArrayList<>(Arrays.asList(10, 20, 30));
+        List<Integer> arr = new ArrayList<>(Arrays.asList(10, 20, 30));
         return arr;
     }
     public  void test() 
@@ -34,11 +34,24 @@ class UnsetCastTest {
         JhpRuntime.echo("UnsetCastTest:" + "\\n");
     }
 }
+interface HelloWorld {
+    public void greet();
+    public void greetSomeone( String someone);
+}
 class AnonymousClassTest {
     public Object anonymousObj;
     public  void test() 
     {
-        this.anonymousObj = new Object();
+        HelloWorld s = new HelloWorld()        {
+            public  void greet() 
+            {
+                JhpRuntime.echo("Hello, World!");
+            }
+            public  void greetSomeone( String someone) 
+            {
+                JhpRuntime.echo(("Hello, " + someone) + "!");
+            }
+        };
         JhpRuntime.echo("AnonymousClassTest:" + "\\n");
     }
 }
@@ -72,9 +85,33 @@ class AttributeOnExpressionTest {
     public Integer exprValue = 0;
     public  void test() 
     {
-        (123);
+        this.exprValue = 123;
         JhpRuntime.echo("AttributeOnExpressionTest:" + "\\n");
         JhpRuntime.echo(strval(this.exprValue));
+        JhpRuntime.echo("\\n");
+    }
+}
+class ColonStyleSyntaxTest {
+    public String output = "";
+    public  void test() 
+    {
+        Integer x = 10;
+        if (x > 5){
+            this.output = this.output + "x>5 ";
+        }
+        Integer i = 0;
+        while (i < 3)
+        {
+            this.output = (this.output + String.valueOf(strval(i))) + " ";
+            i++;
+        }
+        Integer j = 0;
+        for (j = 0; j < 2; j++)
+        {
+            this.output = this.output + "for ";
+        }
+        JhpRuntime.echo("ColonStyleSyntaxTest:" + "\\n");
+        JhpRuntime.echo(this.output);
         JhpRuntime.echo("\\n");
     }
 }

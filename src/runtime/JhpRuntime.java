@@ -150,4 +150,43 @@ public class JhpRuntime {
             throw new RuntimeException("Clone failed: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * 模拟 PHP 的 unset，用于删除数组或 Map 中的元素。
+     * 用法：unset(collection, key1, key2, ...) 支持多维删除。
+     * 例如：unset(arr, 0) 删除列表第一个元素；
+     *       unset(map, "key") 删除 Map 中键为 "key" 的条目；
+     *       unset(arr, 0, 1) 删除 arr[0] 中索引 1 的元素（多维）。
+     * @param obj 目标容器（List 或 Map）
+     * @param keys 一个或多个索引/键，最后一个是要删除的键
+     * @throws RuntimeException 如果 obj 不是 List/Map，或索引越界
+     */
+//    public static void unset(Object obj, Object... keys) {
+//        if (keys == null || keys.length == 0) {
+//            throw new RuntimeException("unset requires at least one key");
+//        }
+//        Object current = obj;
+//        // 逐层深入，直到倒数第二个键
+//        for (int i = 0; i < keys.length - 1; i++) {
+//            Object key = keys[i];
+//            if (current instanceof List) {
+//                int index = ((Number) key).intValue();
+//                current = ((List<?>) current).get(index);
+//            } else if (current instanceof Map) {
+//                current = ((Map<?, ?>) current).get(key);
+//            } else {
+//                throw new RuntimeException("Cannot index into " + current.getClass());
+//            }
+//        }
+//        // 使用最后一个键执行删除
+//        Object lastKey = keys[keys.length - 1];
+//        if (current instanceof List) {
+//            int index = ((Number) lastKey).intValue();
+//            ((List<?>) current).remove(index);
+//        } else if (current instanceof Map) {
+//            ((Map<?, ?>) current).remove(lastKey);
+//        } else {
+//            throw new RuntimeException("Cannot unset on " + current.getClass());
+//        }
+//    }
 }
