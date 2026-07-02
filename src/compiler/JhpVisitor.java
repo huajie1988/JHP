@@ -175,22 +175,53 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         String condCode = exprProc.generateExpression(condExpr, indentLevel);
 
         JhpUtils.printIndent(out, indentLevel);
-        out.println("if (" + condCode + ")");
-        visit(ctx.statement());
-
-        if (ctx.elseIfStatement() != null) {
-            for (JhpParser.ElseIfStatementContext elseIf : ctx.elseIfStatement()) {
-                String elseIfCond = exprProc.generateExpression(elseIf.parentheses().expression(), indentLevel);
-                JhpUtils.printIndent(out, indentLevel);
-                out.println("else if (" + elseIfCond + ")");
-                visit(elseIf.statement());
-            }
-        }
-
-        if (ctx.elseStatement() != null) {
+        if(ctx.innerStatementList() != null){
+            out.println("if (" + condCode + "){");
+            indentLevel++;
+            visit(ctx.innerStatementList());
+            indentLevel--;
             JhpUtils.printIndent(out, indentLevel);
-            out.println("else");
-            visit(ctx.elseStatement().statement());
+            out.println("}");
+            if(ctx.elseIfColonStatement() != null) {
+                for (JhpParser.ElseIfColonStatementContext elseIf : ctx.elseIfColonStatement()){
+                    String elseIfCond = exprProc.generateExpression(elseIf.parentheses().expression(), indentLevel);
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println("else if (" + elseIfCond + "){");
+                    indentLevel++;
+                    visit(elseIf.innerStatementList());
+                    indentLevel--;
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println("}");
+                }
+            }
+            if(ctx.elseColonStatement() != null) {
+                JhpUtils.printIndent(out, indentLevel);
+                out.println("else {");
+                indentLevel++;
+                visit(ctx.elseColonStatement().innerStatementList());
+                indentLevel--;
+                JhpUtils.printIndent(out, indentLevel);
+                out.println("}");
+
+            }
+        }else {
+            out.println("if (" + condCode + ")");
+            visit(ctx.statement());
+
+            if (ctx.elseIfStatement() != null) {
+                for (JhpParser.ElseIfStatementContext elseIf : ctx.elseIfStatement()) {
+                    String elseIfCond = exprProc.generateExpression(elseIf.parentheses().expression(), indentLevel);
+                    JhpUtils.printIndent(out, indentLevel);
+                    out.println("else if (" + elseIfCond + ")");
+                    visit(elseIf.statement());
+                }
+            }
+
+            if (ctx.elseStatement() != null) {
+                JhpUtils.printIndent(out, indentLevel);
+                out.println("else");
+                visit(ctx.elseStatement().statement());
+            }
         }
 
         return null;
@@ -216,7 +247,17 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
 
         JhpUtils.printIndent(out, indentLevel);
         out.println("while (" + condCode + ")");
-        visit(ctx.statement());
+        if(ctx.innerStatementList() != null){
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("{");
+            indentLevel++;
+            visit(ctx.innerStatementList());
+            indentLevel--;
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("}");
+        }else {
+            visit(ctx.statement());
+        }
         return null;
     }
 
@@ -249,7 +290,18 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
         }
         JhpUtils.printIndent(out, indentLevel);
         out.printf("for (%s; %s; %s)%n", initCode, condCode, updateCode);
-        visit(ctx.statement());
+        if(ctx.innerStatementList() != null){
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("{");
+            indentLevel++;
+            visit(ctx.innerStatementList());
+            indentLevel--;
+            JhpUtils.printIndent(out, indentLevel);
+            out.println("}");
+        }else {
+            visit(ctx.statement());
+        }
+
         return null;
         
     }
@@ -427,7 +479,7 @@ public class JhpVisitor extends JhpParserBaseVisitor<Void> {
                 visit(bodyStmt);
             }
         } else if (ctx.innerStatementList() != null) {
-            System.err.println("Colon-style foreach not supported yet");
+            visit(ctx.innerStatementList());
         }
 
         indentLevel--;

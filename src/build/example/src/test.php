@@ -95,46 +95,79 @@ echo $map, "\n";
 // echo $zc, "\n";
 // echo $zd, "\n";
 
-// $a = 10;
-// if ($a > 5) {
-//     echo "big";
-//     echo "aaaa\n";
-// }else if ($a == 5) {
-//     echo "equal";
-//     echo "bbbb\n";
-// } else {
-//     echo "small";
-// }
+$a = 10;
+ if ($a > 5) {
+     echo "big";
+     echo "aaaa\n";
+ }else if ($a == 5) {
+     echo "equal";
+     echo "bbbb\n";
+ } else {
+     echo "small";
+ }
+
+if ($a > 5):
+    echo $a." is greater than 5";
+elseif ($a == 5): // 注意使用了一个单词的 elseif
+    echo $a." equals 5";
+else:
+    echo $a." is neither greater than or equal to 5";
+endif;
 
 $a = 10;
-// while ($a > 5) {
-//     echo "big";
-//     echo $a, "\n";
-//     $a--;
-// }
+ while ($a > 5) {
+     echo "big";
+     echo $a, "\n";
+     $a--;
+ }
 
-// for ($i=0; $i < 5; $i++) {
-//     if($i == 2) {
-//         break; // 跳过当前循环
-//     }
-//     echo "i=", $i, "\n";
-// }
+ while ($a > 5) :
+     echo "big";
+     echo $a, "\n";
+     $a--;
+ endwhile;
+
+ $i=0;
+ for ($i=0; $i < 5; $i++) {
+     if($i == 2) {
+         break; // 跳过当前循环
+     }
+     echo "i=", $i, "\n";
+ }
+
+ for ($i=0; $i < 5; $i++) :
+     if($i == 2) :
+         break; // 跳过当前循环
+     endif;
+     echo "i=", $i, "\n";
+ endfor;
 
 // do {
 //     echo "a=", $a, "\n";
 //     $a--;
 // } while ($a > 5);
 
-// switch ($a) {
-//     case 10:
-//         echo "ten\n";
-//         break;
-//     case 5:
-//         echo "five\n";
-//         break;
-//     default :
-//         echo "other\n";
-// }
+ switch ($a) {
+     case 10:
+         echo "ten\n";
+         break;
+     case 5:
+         echo "five\n";
+         break;
+     default :
+         echo "other\n";
+ }
+
+ switch ($a) :
+     case 10:
+         echo "ten\n";
+         break;
+     case 5:
+         echo "five\n";
+         break;
+     default :
+         echo "other\n";
+ endswitch;
 
 $array = [
     array(1, 2, 3),
@@ -185,17 +218,17 @@ function func2() : void {
     echo "Hello from func2\n";
 }
 
-foreach ($array as $row) {
+foreach ($array as $row) :
     echo $row, ":\n";
-    foreach ($row as $k2=>$value) {
+    foreach ($row as $k2=>$value) :
         echo $k2, ": ", $value, "\n";
-    }
-}
+    endforeach;
+endforeach;
 func2();
 foreach ($map3 as $personInfo) {
     
     foreach ($personInfo as $infoValue) {
         echo  "aaaa\n";
-        echo "  ",  $infoValue, "\n";
+        echo "  2",  $infoValue, "\n";
     }
 }
