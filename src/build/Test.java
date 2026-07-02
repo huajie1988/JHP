@@ -11,8 +11,8 @@ public class Test {
         JhpRuntime.echo("Hello from func2" + "\\n");
     }
     public static void main(String[] args) {
-        ArrayList<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4 + 1));
-        HashMap<String, Object> map = new HashMap<>() {{
+        List<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4 + 1));
+        Map<String, Object> map = new HashMap<>() {{
             put("name", "Alice");
             put("age", 30);
         }};
@@ -92,8 +92,8 @@ public class Test {
             default:
                 JhpRuntime.echo("other" + "\\n");
         }
-        ArrayList<ArrayList<Integer>> array = new ArrayList<>(Arrays.asList(new ArrayList<>(Arrays.asList(1, 2, 3)), new ArrayList<>(Arrays.asList(4, 5, 6)), new ArrayList<>(Arrays.asList(7, 8, 9))));
-        HashMap<String, HashMap<String, Object>> map3 = new HashMap<>() {{
+        List<List<Integer>> array = new ArrayList<>(Arrays.asList(new ArrayList<>(Arrays.asList(1, 2, 3)), new ArrayList<>(Arrays.asList(4, 5, 6)), new ArrayList<>(Arrays.asList(7, 8, 9))));
+        Map<String, Map<String, Object>> map3 = new HashMap<>() {{
             put("person1", new HashMap<>() {{
             put("name", "Alice");
             put("age", 30);
@@ -103,10 +103,13 @@ public class Test {
             put("age", 25);
         }});
         }};
-        ArrayList<Integer> n = array.get(1);
+        List<Integer> n = array.get(1);
+        Map<String, String> m = new HashMap<>() {{
+            put("name", "Alice3");
+        }};
         String fffff = func1(" PHP", 100);
         JhpRuntime.echo(fffff, "\\n");
-        for (ArrayList<Integer> row : array) {
+        for (List<Integer> row : array) {
             JhpRuntime.echo(row, ":" + "\\n");
             for (int k2 = 0; k2 < row.size(); k2++) {
                 Integer value = row.get(k2);
@@ -114,7 +117,7 @@ public class Test {
             }
         }
         func2();
-        for (HashMap<String, Object> personInfo : map3.values()) {
+        for (Map<String, Object> personInfo : map3.values()) {
             for (Object infoValue : personInfo.values()) {
                 JhpRuntime.echo("aaaa" + "\\n");
                 JhpRuntime.echo("  2", infoValue, "\\n");

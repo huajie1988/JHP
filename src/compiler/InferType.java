@@ -213,9 +213,9 @@ public class InferType {
         }
         String elementType = inferArrayElementType(ctx);
         if (elementType != null && !elementType.equals("Object")) {
-            return "ArrayList<" + elementType + ">";
+            return "List<" + elementType + ">";
         }
-        return "ArrayList<Object>";
+        return "List<Object>";
     }
 
     private String inferArrayElementType(JhpParser.ArrayCreationExpressionContext ctx) {
@@ -263,7 +263,7 @@ public class InferType {
             }
         }
         if (arrayCreation == null) {
-            return "HashMap<Object, Object>";
+            return "Map<Object, Object>";
         }
         JhpParser.ArrayItemListContext itemList = null;
         for (int i = 0; i < arrayCreation.getChildCount(); i++) {
@@ -274,7 +274,7 @@ public class InferType {
             }
         }
         if (itemList == null || itemList.arrayItem().isEmpty()) {
-            return "HashMap<Object, Object>";
+            return "Map<Object, Object>";
         }
         String keyType = null;
         String valueType = null;
@@ -303,7 +303,7 @@ public class InferType {
         if (valueType == null || valueType.equals("Object")) {
             valueType = "Object";
         }
-        return "HashMap<" + keyType + ", " + valueType + ">";
+        return "Map<" + keyType + ", " + valueType + ">";
     }
 
         private String getCommonSuperType(String type1, String type2) {
