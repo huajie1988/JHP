@@ -215,9 +215,20 @@ function getFirst<:T:>(array<:T:> $arr): T { }
 
 ### 闭包类型注解
 ```php
-// 为多行闭包指定目标函数式接口
-#[Type("Function<Integer, String>")]
-$fn = function(int $x): string { return strval($x); };
+// 为单行闭包指定目标函数式接口
+#[Type("Function<: string, string :>")]
+$greet = fn(string $name) => "Hello, " . $name;
+echo "Greeting: ", $greet("World"), "\n";
+
+// 2. 多行匿名函数测试
+#[Type("Runnable")]
+$runnable = function() : void {
+    echo "Running a multi-line closure:\n";
+    for ($i = 0; $i < 3; $i++) {
+        echo "  Count: ", $i, "\n";
+    }
+};
+$runnable();  // 调用 run
 ```
 
 ### JavaDoc 注解
@@ -227,8 +238,8 @@ $fn = function(int $x): string { return strval($x); };
 #[JavaDoc("@return 问候信息")]
 public function greet(string $name): string { ... }
 // → 翻译为:
-// @JavaDoc("@param name 用户姓名")
-// @JavaDoc("@return 问候信息")
+// @param name 用户姓名
+// @return 问候信息
 // public String greet(String name) { ... }
 ```
 

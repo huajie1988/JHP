@@ -213,9 +213,21 @@ function getFirst<:T:>(array<:T:> $arr): T { }
 
 ### Closure Type Annotation
 ```php
+// Specify target functional interface for single-line closures
+#[Type("Function<: string, string :>")]
+$greet = fn(string $name) => "Hello, " . $name;
+echo "Greeting: ", $greet("World"), "\n";
+
 // Specify target functional interface for multi-line closures
-#[Type("Function<Integer, String>")]
-$fn = function(int $x): string { return strval($x); };
+#[Type("Runnable")]
+$runnable = function() : void {
+    echo "Running a multi-line closure:\n";
+    for ($i = 0; $i < 3; $i++) {
+        echo "  Count: ", $i, "\n";
+    }
+};
+$runnable();  // 调用 run
+
 ```
 
 ### JavaDoc Annotation
@@ -225,8 +237,8 @@ $fn = function(int $x): string { return strval($x); };
 #[JavaDoc("@return The greeting message")]
 public function greet(string $name): string { ... }
 // → Translated as:
-// @JavaDoc("@param name The user name")
-// @JavaDoc("@return The greeting message")
+// @param name The user name
+// @return The greeting message
 // public String greet(String name) { ... }
 ```
 
