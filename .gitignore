@@ -25,3 +25,7 @@ hs_err_pid*
 replay_pid*
 
 bak/
+src/*.txt
+src/jhp/
+src/gen/
+src/.idea/
