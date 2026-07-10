@@ -1,6 +1,8 @@
 package App.Model;
 
 import runtime.JhpRuntime;
+
+import java.math.BigDecimal;
 import java.util.*;
 @Service
 @Repository
@@ -115,6 +117,7 @@ class User {
         {
             return new ResultVO(ResultCodeEnum.ACCOUNT_DISABLED, null);
         }
+        BigDecimal balance = new BigDecimal(10);
         try 
         {
             customer = customerService.getCustomerByOpenId(openId);

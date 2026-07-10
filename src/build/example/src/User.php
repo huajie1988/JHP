@@ -141,6 +141,7 @@ class User {
         if(!$customer->getWxOpenid()->equals($openId)){
             return new ResultVO(ResultCodeEnum::ACCOUNT_DISABLED,null);
         }
+        $balance = new BigDecimal(10);
         try{
             #[Type(Customer)]
             $customer = $customerService->getCustomerByOpenId(openId);

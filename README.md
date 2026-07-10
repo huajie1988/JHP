@@ -183,27 +183,19 @@ These features are fundamentally incompatible with Java or are design decisions:
 | Reference parameters (`&$var`) | Java has no pass-by-reference |
 | Closure `use()` clause | Java lambdas capture variables from enclosing scope differently |
 | Variable variables (`$$var`) | No dynamic variable name concept in Java |
-| `Mixed` type hint | `ObjectType` is supported but `mixed` keyword not explicitly handled |
+| `Mixed` type hint | No equivalent in Java; use `Object` uniformly |
+| `unset()` cast | No equivalent in Java |
+| Anonymous classes | Limited support — only simple cases without `use()` clause |
+| Backtick strings | No shell command execution syntax in Java |
+| `trait` statements | No trait concept in Java |
+| Attributes on arbitrary expressions | Grammar coverage incomplete; behavior unpredictable |
+| Colon-style alternative syntax (`endif;`, `endwhile;`) | ✅ Supported (if/elseif/else, while, for, foreach, switch) |
 
 ### Temporarily Not Supported — May Be Implemented
 
 | Feature | Notes |
 |---------|-------|
 | `match` expression | Planned for future support |
-| `unset()` cast | Planned for future support ,maybe runtime methond |
-
-### Not Recommended — Behavior Unpredictable
-
-These features may parse but behavior is not guaranteed:
-
-| Feature | Notes |
-|---------|-------|
-| Dynamic variable names (`$$var`) | May work through `chain`, not thoroughly tested |
-| Anonymous classes | Supported in grammar but generated as `Object` |
-| `Backtick` strings | Lexer has `BackQuoteString` but not used |
-| `trait` statements | Parsed but outputs warning "not supported" |
-| Attributes on arbitrary expressions | `attributes expressionStatement` rule exists but coverage incomplete |
-| Colon-style alternative syntax (`endif;`, `endwhile;`) | Mostly parsed but not fully verified |
 
 ---
 
@@ -233,8 +225,8 @@ $fn = function(int $x): string { return strval($x); };
 #[JavaDoc("@return The greeting message")]
 public function greet(string $name): string { ... }
 // → Translated as:
-// @param name The user name
-// @return The greeting message
+// @JavaDoc("@param name The user name")
+// @JavaDoc("@return The greeting message")
 // public String greet(String name) { ... }
 ```
 
@@ -441,7 +433,6 @@ JhpVisitor (walks tree)
 1. **Type inference is basic** - defaults to `Object` when types cannot be determined
 2. **No null safety** - PHP's loose typing maps to Java reference types without null checks
 3. **Integer division** - PHP `$x / $y` does float division; Java does integer division (truncated)
-4. **Traits** - Parsed but outputs warning; treated as comments
-5. **No `@` error suppression** - PHP error suppression is silently ignored
-6. **Anonymous classes** - Supported in grammar but generated as `Object`
-7. **Cross-file method resolution** - Requires phase-1 symbol collection to work properly
+4. **No `@` error suppression** - PHP error suppression is silently ignored
+5. **Cross-file method resolution** - Requires phase-1 symbol collection to work properly
+6. **Variable type is immutable after declaration** - Since JHP compiles to Java (a statically typed language), once a variable's type is inferred or declared, it cannot be changed. In PHP you can do `$x = 1; $x = "hello";` but this will fail in translated Java code because the variable `$x` will be typed as `Integer` after the first assignment.

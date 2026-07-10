@@ -60,6 +60,8 @@ java Main -collect <input.php>
 
 **模式 3/4**：对于已包含 class/interface/enum 定义的 PHP 文件，翻译时直接输出，不添加任何包裹类。也适用于单个文件的翻译。
 
+**重要约束**：包含类定义的 PHP 文件中，**不能同时包含普通的 PHP 顶层语法**（如变量赋值、函数调用、if/while 等控制流语句）。如果需要混合使用，请将普通语法封装在类的方法中。违反此规则可能导致翻译结果不正确。
+
 ---
 
 ## 1. 已支持的 PHP 特性
@@ -183,28 +185,19 @@ java Main -collect <input.php>
 | 引用参数（`&$var`） | Java 没有引用传递 |
 | 闭包中的 `use()` 子句 | Java lambda 以不同方式捕获外部变量 |
 | 可变变量（`$$var`） | Java 中没有动态变量名概念 |
-| `Mixed` 类型提示 | 不支持 |
-
+| `Mixed` 类型提示 | Java 中没有对应概念，统一使用 `Object` |
+| `unset()` 强制转换 | Java 中没有对应概念 |
+| 匿名类 | 有限支持 — 仅支持简单场景，且不支持 `use()` 子句 |
+| 反引号字符串 | Java 中没有 shell 命令执行语法 |
+| `trait` 语句 | Java 中没有 trait 概念 |
+| 任意表达式上的注解 | 语法覆盖不完整，行为不可预测 |
+| 冒号风格替代语法（`endif;`、`endwhile;`） | ✅ 已支持（if/elseif/else、while、for、foreach、switch） |
 
 ### 暂不支持 — 后续可能会实现
 
 | 特性 | 说明 |
 |------|------|
 | `match` 表达式 | 计划未来支持 |
-| `unset()` | 语法中有但后期考虑可能作为runtime |
-
-### 不推荐使用 — 行为无法预料
-
-以下特性可能可以解析，但行为不保证：
-
-| 特性 | 说明 |
-|------|------|
-| 动态变量名（`$$var`） | 可能通过 `chain` 工作，但未充分测试 |
-| 匿名类 | 语法支持但生成代码为 `Object` |
-| 反引号字符串 | 词法分析器有 `BackQuoteString` 但未使用 |
-| `trait` 语句 | 能解析但输出警告"不支持" |
-| 任意表达式上的注解 | `attributes expressionStatement` 规则存在但覆盖不完整 |
-| 冒号风格替代语法（`endif;`、`endwhile;`） | 基本可解析但未完全验证 |
 
 ---
 
@@ -234,8 +227,8 @@ $fn = function(int $x): string { return strval($x); };
 #[JavaDoc("@return 问候信息")]
 public function greet(string $name): string { ... }
 // → 翻译为:
-// @param name 用户姓名"
-// @return 问候信息"
+// @JavaDoc("@param name 用户姓名")
+// @JavaDoc("@return 问候信息")
 // public String greet(String name) { ... }
 ```
 
@@ -442,7 +435,6 @@ JhpVisitor（遍历树）
 1. **类型推断基础** - 类型无法确定时默认使用 `Object`
 2. **无空安全** - PHP 的松散类型映射到 Java 引用类型时没有空检查
 3. **整数除法** - PHP `$x / $y` 是浮点除法，Java 是整数除法（截断）
-4. **Trait 使用** - 能解析但输出警告；trait 当作注释处理
-5. **`@` 错误抑制** - PHP 错误抑制被静默忽略
-6. **匿名类** - 语法支持但生成代码为 `Object`
-7. **跨文件方法解析** - 需要阶段 1 符号收集才能正常工作
+4. **`@` 错误抑制** - PHP 错误抑制被静默忽略
+5. **跨文件方法解析** - 需要阶段 1 符号收集才能正常工作
+6. **变量类型一旦确定不可更改** - 由于 JHP 编译为 Java（静态类型语言），变量的类型在推断或声明后不能再改变。PHP 中可以写 `$x = 1; $x = "hello";`，但在翻译后的 Java 代码中会失败，因为变量 `$x` 在第一次赋值后会被确定为 `Integer` 类型。
